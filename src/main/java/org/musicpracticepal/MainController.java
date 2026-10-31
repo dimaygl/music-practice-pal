@@ -1,6 +1,7 @@
 package org.musicpracticepal;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -21,6 +22,11 @@ public class MainController {
 
     record RelativeMinor(String relativeMinor, String backingTrackUrl) {}
 
+    private record PracticeData(List<String> songs, LinkedHashMap<String, RelativeMinor> scales) {}
+
+    private static final LocalDate ROTATION_START = LocalDate.of(1970, 1, 5);
+
+    private final List<String> songs;
     private final List<String> scales;
     private final Map<String, RelativeMinor> relativeMinors;
 
@@ -28,10 +34,21 @@ public class MainController {
     public MainController(
             @Value("classpath:data.json") Resource dataFile,
             ObjectMapper objectMapper) {
-        this(loadRelativeMinors(dataFile, objectMapper));
+        this(loadPracticeData(dataFile, objectMapper));
     }
 
-    MainController(Map<String, RelativeMinor> relativeMinors) {
+    MainController(PracticeData data) {
+        this(data.songs(), data.scales());
+    }
+
+    MainController(List<String> songs, Map<String, RelativeMinor> relativeMinors) {
+        this.songs = songs.stream()
+                .map(String::trim)
+                .filter(song -> !song.isEmpty())
+                .toList();
+        if (this.songs.isEmpty()) {
+            throw new IllegalStateException("The data JSON must contain at least one song");
+        }
         this.relativeMinors = Collections.unmodifiableMap(new LinkedHashMap<>(relativeMinors));
         this.scales = List.copyOf(this.relativeMinors.keySet());
         if (this.scales.isEmpty()) {
@@ -41,9 +58,11 @@ public class MainController {
 
     @GetMapping("/")
     public String home(Model model) {
-        String scale = scaleFor(LocalDate.now());
+        LocalDate today = LocalDate.now();
+        String scale = scaleFor(today);
         model.addAttribute("scaleToPractice", scaleDisplay(scale));
         model.addAttribute("minorBackingTrackUrl", minorBackingTrackUrl(scale));
+        model.addAttribute("songToPractice", songFor(today));
         return "index";
     }
 
@@ -57,18 +76,37 @@ public class MainController {
         return relativeMinor == null ? null : relativeMinor.backingTrackUrl();
     }
 
-    private static Map<String, RelativeMinor> loadRelativeMinors(Resource resource, ObjectMapper objectMapper) {
-        try {
-            return objectMapper.readValue(
-                    resource.getInputStream(), new TypeReference<LinkedHashMap<String, RelativeMinor>>() {});
+    private static PracticeData loadPracticeData(Resource resource, ObjectMapper objectMapper) {
+        try (InputStream input = resource.getInputStream()) {
+            Map<String, Object> data = objectMapper.readValue(input, new TypeReference<>() {});
+            if (data.get("Songs") == null) {
+                throw new IllegalStateException("The data JSON must contain at least one song");
+            }
+            List<String> songs = objectMapper.convertValue(
+                    data.get("Songs"), new TypeReference<List<String>>() {});
+            Object scaleData = data.get("Scales");
+            if (scaleData == null) {
+                throw new IllegalStateException("The data JSON must contain at least one scale");
+            }
+            LinkedHashMap<String, RelativeMinor> scales = objectMapper.convertValue(
+                    scaleData, new TypeReference<LinkedHashMap<String, RelativeMinor>>() {});
+            if (scales.isEmpty()) {
+                throw new IllegalStateException("The data JSON must contain at least one scale");
+            }
+            return new PracticeData(songs, scales);
         } catch (IOException e) {
             throw new IllegalStateException(
-                    "Failed to load scale data from " + resource.getDescription(), e);
+                    "Failed to load practice data from " + resource.getDescription(), e);
         }
     }
 
+    String songFor(LocalDate date) {
+        long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
+        return songs.get((int) Math.floorMod(daysSinceStart, songs.size()));
+    }
+
     String scaleFor(LocalDate date) {
-        long daysSinceStart = date.toEpochDay() - LocalDate.of(1970, 1, 5).toEpochDay();
+        long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
         return scales.get((int) Math.floorMod(daysSinceStart, scales.size()));
     }
 }
