@@ -4,7 +4,7 @@
 
 Practice Pal is a Spring Boot web application for keeping guitar practice focused. Its home page brings together a daily scale, song, and lesson in one place, with a separate entry point for song charts.
 
-> **Project status:** The application currently provides an early dashboard experience with sample content. User accounts, saved practice plans, and dynamic content are not implemented yet.
+> **Project status:** The dashboard selects a scale and minor backing track from local data. Song and lesson content is still sample content; user accounts, saved practice plans, and persistence are not implemented.
 
 ## What’s included
 
@@ -63,11 +63,14 @@ src/
 │   ├── java/org/practicepal/          # Spring Boot application and configuration
 │   └── resources/
 │       ├── templates/                 # Thymeleaf pages
+│       ├── data.json                  # Ordered scale, relative-minor, and backing-track data
 │       └── application.properties     # Application configuration
 └── test/                              # Application tests
 ```
 
 ## Configuration
+
+`src/main/resources/data.json` defines the scales, their relative minor names, and backing-track URLs. Each top-level key is a scale, and its object contains a `relativeMinor` label and `backingTrackUrl`. The JSON entry order determines the daily scale sequence; it advances once per calendar day from Monday, January 5, 1970, and wraps back to the first entry.
 
 The application name is set in `src/main/resources/application.properties`. Spring Boot uses its standard configuration conventions, so additional settings can be supplied with environment variables or command-line properties.
 
