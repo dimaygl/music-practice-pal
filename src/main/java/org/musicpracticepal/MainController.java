@@ -83,13 +83,15 @@ public class MainController {
                 throw new IllegalStateException("The data JSON must contain at least one song");
             }
             List<String> songs = objectMapper.convertValue(
-                    data.get("Songs"), new TypeReference<List<String>>() {});
+                    data.get("Songs"), new TypeReference<>() {
+                    });
             Object scaleData = data.get("Scales");
             if (scaleData == null) {
                 throw new IllegalStateException("The data JSON must contain at least one scale");
             }
             LinkedHashMap<String, RelativeMinor> scales = objectMapper.convertValue(
-                    scaleData, new TypeReference<LinkedHashMap<String, RelativeMinor>>() {});
+                    scaleData, new TypeReference<>() {
+                    });
             if (scales.isEmpty()) {
                 throw new IllegalStateException("The data JSON must contain at least one scale");
             }
@@ -102,11 +104,11 @@ public class MainController {
 
     String songFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
-        return songs.get((int) Math.floorMod(daysSinceStart, songs.size()));
+        return songs.get(Math.floorMod(daysSinceStart, songs.size()));
     }
 
     String scaleFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
-        return scales.get((int) Math.floorMod(daysSinceStart, scales.size()));
+        return scales.get(Math.floorMod(daysSinceStart, scales.size()));
     }
 }
