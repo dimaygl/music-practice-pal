@@ -59,6 +59,12 @@
                 <div class="card-body p-4 p-md-5 text-center">
                   <h1 class="card-title h2 fw-bold mb-3" id="scale-heading">Scale to Practice</h1>
                   <p class="h5 text-primary mb-3" th:text="${scaleToPractice}">A</p>
+                  <div class="mb-3" th:if="${minorBackingTrackUrl != null}">
+                    <p class="mb-2">Minor scale backing track</p>
+                    <audio controls preload="none" th:src="${minorBackingTrackUrl}">
+                      Your browser does not support audio playback.
+                    </audio>
+                  </div>
                   <ul class="d-inline-block text-start mb-0">
                     <li>all positions</li>
                     <li>cross positions</li>

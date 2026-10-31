@@ -1,0 +1,58 @@
+{
+  "A": {
+    "relativeMinor": "F# minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_fsharp_minor_normal.mp3"
+  },
+  "A#": {
+    "relativeMinor": "G minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_gminorkey_normal.mp3"
+  },
+  "B": {
+    "relativeMinor": "G# minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_gsharp_minor_normal.mp3"
+  },
+  "B#": {
+    "relativeMinor": "A minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_aminorkey_fast.mp3"
+  },
+  "C": {
+    "relativeMinor": "A minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_aminorkey_fast.mp3"
+  },
+  "C#": {
+    "relativeMinor": "A# minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_asharpminorkey_normal.mp3"
+  },
+  "D": {
+    "relativeMinor": "B minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_b_minor_normal.mp3"
+  },
+  "D#": {
+    "relativeMinor": "C minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_cminorkey_normal.mp3"
+  },
+  "E": {
+    "relativeMinor": "C# minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_csharpminorkey_normal.mp3"
+  },
+  "E#": {
+    "relativeMinor": "D minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_dminorkey_normal.mp3"
+  },
+  "F": {
+    "relativeMinor": "D minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_dminorkey_normal.mp3"
+  },
+  "F#": {
+    "relativeMinor": "D# minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_dsharpminorkey_normal.mp3"
+  },
+  "G": {
+    "relativeMinor": "E minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_eminorkey_normal.mp3"
+  },
+  "G#": {
+    "relativeMinor": "F minor",
+    "backingTrackUrl": "https://www.guitarscale.org/audio/jam_pop_fminorkey_normal.mp3"
+  }
+}
