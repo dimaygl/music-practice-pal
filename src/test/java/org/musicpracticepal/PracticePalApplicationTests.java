@@ -1,4 +1,4 @@
-package org.practicepal;
+package org.musicpracticepal;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

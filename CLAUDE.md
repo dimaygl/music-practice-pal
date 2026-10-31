@@ -22,7 +22,7 @@ Note: `pom.xml` sets `<finalName>music-practice-pal</finalName>`, so the jar is 
 
 ## Architecture
 
-- Base package `org.practicepal`; entry point `PracticePalApplication`, config classes under `org.practicepal.config`.
+- Base package `musicpracticepal`; entry point `PracticePalApplication`, config classes under `musicpracticepal`.
 - **No controllers exist yet.** `templates/index.html` is served at `/` by Spring Boot's Thymeleaf welcome-page auto-configuration. The template links to `/login` and `/song-charts`, which have no handlers yet — adding those pages means adding `@Controller`s and templates.
 - **Security:** `spring-boot-starter-security` is on the classpath, and `SecurityConfig` defines a `SecurityFilterChain` that permits all requests (no form login configured). Any new auth work should modify this bean rather than relying on Boot's default security. `thymeleaf-extras-springsecurity6` is available for `sec:` attributes in templates.
 - **Data:** H2 (plus `spring-boot-h2console`) and PostgreSQL drivers are runtime dependencies, but no JPA/JDBC starter, datasource settings, or entities exist yet. `application.properties` only sets `spring.application.name`.

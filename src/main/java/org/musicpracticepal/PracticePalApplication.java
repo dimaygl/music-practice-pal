@@ -1,4 +1,4 @@
-package org.practicepal;
+package org.musicpracticepal;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

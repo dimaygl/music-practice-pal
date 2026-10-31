@@ -1,4 +1,4 @@
-package org.practicepal;
+package org.musicpracticepal;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -17,7 +17,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
 @Controller
-public class HomeController {
+public class MainController {
 
     record RelativeMinor(String relativeMinor, String backingTrackUrl) {}
 
@@ -25,13 +25,13 @@ public class HomeController {
     private final Map<String, RelativeMinor> relativeMinors;
 
     @Autowired
-    public HomeController(
+    public MainController(
             @Value("classpath:data.json") Resource dataFile,
             ObjectMapper objectMapper) {
         this(loadRelativeMinors(dataFile, objectMapper));
     }
 
-    HomeController(Map<String, RelativeMinor> relativeMinors) {
+    MainController(Map<String, RelativeMinor> relativeMinors) {
         this.relativeMinors = Collections.unmodifiableMap(new LinkedHashMap<>(relativeMinors));
         this.scales = List.copyOf(this.relativeMinors.keySet());
         if (this.scales.isEmpty()) {
