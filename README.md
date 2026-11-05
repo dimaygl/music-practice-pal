@@ -9,7 +9,7 @@ Practice Pal is a Spring Boot web application for keeping guitar practice focuse
 ## What’s included
 
 - A responsive dashboard with daily practice sections for scales, songs, and lessons
-- A navigation entry for song charts
+- A song chart gallery with a grid and image-preview modals
 - A dark-themed interface built with Thymeleaf and Bootstrap
 - A Spring Boot application configured for Java 21
 
@@ -70,7 +70,7 @@ src/
 
 ## Configuration
 
-`src/main/resources/data.json` contains `Songs` and `Lessons` arrays and a `Scales` object. Each song and lesson has a `name` and a `links` array of URLs; links for the selected daily song and lesson appear in their dashboard panels. The song list, lesson list, and scale entries each rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Each scale key maps to an object containing a `relativeMinor` label and `backingTrackUrl`.
+`src/main/resources/data.json` contains `Songs` and `Lessons` arrays and a `Scales` object. Each song has a `name`, a `links` array of URLs, and an optional `chartImage` path. Use the Song Charts grid's upload form to add a PNG, JPG, JPEG, or GIF chart image to a song. Uploaded images are stored in `uploads/song-charts` by default and served from the gallery; change `practice-pal.upload-dir` to choose another storage directory. Upload size is limited to 10 MB. The gallery opens a chart image in a modal, and songs without a chart show a placeholder. Each lesson has a `name` and a `links` array of URLs; links for the selected daily song and lesson appear in their dashboard panels. The song list, lesson list, and scale entries each rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Each scale key maps to an object containing a `relativeMinor` label and `backingTrackUrl`.
 
 The application name is set in `src/main/resources/application.properties`. Spring Boot uses its standard configuration conventions, so additional settings can be supplied with environment variables or command-line properties.
 

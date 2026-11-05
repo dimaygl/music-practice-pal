@@ -2,11 +2,13 @@ package org.musicpracticepal;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +16,11 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -22,7 +29,7 @@ public class MainController {
 
     record RelativeMinor(String relativeMinor, String backingTrackUrl) {}
 
-    record Song(String name, List<String> links) {
+    record Song(String name, List<String> links, String chartImage) {
         Song {
             name = name.trim();
             links = List.copyOf(links);
@@ -36,6 +43,8 @@ public class MainController {
         }
     }
 
+    record SongCard(int index, String name, String chartImage) {}
+
     private record PracticeData(
             List<Song> songs, List<Lesson> lessons, LinkedHashMap<String, RelativeMinor> scales) {}
 
@@ -45,19 +54,34 @@ public class MainController {
     private final List<Lesson> lessons;
     private final List<String> scales;
     private final Map<String, RelativeMinor> relativeMinors;
+    private final SongChartStorage chartStorage;
 
     @Autowired
     public MainController(
             @Value("classpath:data.json") Resource dataFile,
-            ObjectMapper objectMapper) {
-        this(loadPracticeData(dataFile, objectMapper));
+            ObjectMapper objectMapper,
+            SongChartStorage chartStorage) {
+        this(loadPracticeData(dataFile, objectMapper), chartStorage);
     }
 
     MainController(PracticeData data) {
-        this(data.songs(), data.lessons(), data.scales());
+        this(data.songs(), data.lessons(), data.scales(),
+                new SongChartStorage(Path.of("uploads/song-charts")));
+    }
+
+    private MainController(PracticeData data, SongChartStorage chartStorage) {
+        this(data.songs(), data.lessons(), data.scales(), chartStorage);
     }
 
     MainController(List<Song> songs, List<Lesson> lessons, Map<String, RelativeMinor> relativeMinors) {
+        this(songs, lessons, relativeMinors, new SongChartStorage(Path.of("uploads/song-charts")));
+    }
+
+    MainController(
+            List<Song> songs,
+            List<Lesson> lessons,
+            Map<String, RelativeMinor> relativeMinors,
+            SongChartStorage chartStorage) {
         this.songs = songs.stream()
                 .filter(song -> !song.name().isBlank())
                 .toList();
@@ -71,6 +95,7 @@ public class MainController {
             throw new IllegalStateException("The data JSON must contain at least one lesson");
         }
         this.relativeMinors = Collections.unmodifiableMap(new LinkedHashMap<>(relativeMinors));
+        this.chartStorage = chartStorage;
         this.scales = List.copyOf(this.relativeMinors.keySet());
         if (this.scales.isEmpty()) {
             throw new IllegalStateException("The data JSON must contain at least one scale");
@@ -90,6 +115,41 @@ public class MainController {
         model.addAttribute("lessonToPractice", lesson.name());
         model.addAttribute("lessonLinks", lesson.links());
         return "index";
+    }
+
+    @GetMapping("/song-charts")
+    public String songCharts(Model model) {
+        List<SongCard> songCards = IntStream.range(0, songs.size())
+                .mapToObj(index -> {
+                    Song song = songs.get(index);
+                    String uploadedImage = chartStorage.imageUrl(index);
+                    String chartImage = uploadedImage == null ? song.chartImage() : uploadedImage;
+                    return new SongCard(index, song.name(), chartImage);
+                })
+                .toList();
+        model.addAttribute("songs", songCards);
+        return "song-charts";
+    }
+
+    @PostMapping("/song-charts/{index}/upload")
+    public String uploadSongChart(
+            @PathVariable int index,
+            @RequestParam("chart") MultipartFile upload,
+            RedirectAttributes redirectAttributes) {
+        if (index < 0 || index >= songs.size()) {
+            redirectAttributes.addFlashAttribute("uploadError", "That song could not be found.");
+            return "redirect:/song-charts";
+        }
+        try {
+            chartStorage.store(index, upload);
+            redirectAttributes.addFlashAttribute(
+                    "uploadSuccess", "Chart uploaded for " + songs.get(index).name() + ".");
+        } catch (SongChartStorage.InvalidChartImageException e) {
+            redirectAttributes.addFlashAttribute("uploadError", e.getMessage());
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to save song chart upload", e);
+        }
+        return "redirect:/song-charts";
     }
 
     String scaleDisplay(String scale) {
