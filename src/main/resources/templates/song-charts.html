@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Song Charts | Practice Pal</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B8%3C/text%3E%3C/svg%3E"
+    >
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    >
+    <style>
+      .chart-thumbnail {
+        height: 15rem;
+        object-fit: contain;
+      }
+
+      .chart-preview {
+        max-height: 75vh;
+        object-fit: contain;
+      }
+    </style>
+  </head>
+  <body class="d-flex min-vh-100 flex-column bg-body text-body">
+    <header>
+      <nav class="navbar bg-body border-bottom border-secondary-subtle py-3" aria-label="Main navigation">
+        <div class="container d-flex justify-content-between align-items-center">
+          <a class="navbar-brand d-flex align-items-center gap-3 me-0" th:href="@{/}">
+            <span class="d-inline-flex align-items-center justify-content-center" aria-hidden="true">
+              <span class="fs-1 lh-1">🎸</span>
+            </span>
+            <span class="d-flex flex-column lh-sm">
+              <strong class="fs-5 text-body">Practice Pal</strong>
+              <small class="text-body-secondary fw-normal mt-1">Your pal for daily guitar practice</small>
+            </span>
+          </a>
+          <a class="btn btn-primary" th:href="@{/login}">Log in</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container flex-grow-1 py-4 py-md-5">
+      <div class="row g-4">
+        <aside class="col-12 col-lg-3" aria-label="Practice menu">
+          <nav class="card bg-body-tertiary border border-secondary-subtle" aria-label="Practice sections">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-body-secondary mb-3">Menu</h2>
+              <ul class="nav nav-pills flex-column gap-2">
+                <li class="nav-item">
+                  <a class="nav-link" th:href="@{/}">Daily Tasks</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link active" aria-current="page" th:href="@{/song-charts}">Song Charts</a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </aside>
+
+        <section class="col-12 col-lg-9" aria-labelledby="charts-heading">
+          <h1 class="h2 fw-bold mb-4" id="charts-heading">Song Charts</h1>
+          <div class="alert alert-success" role="status" th:if="${uploadSuccess != null}"
+               th:text="${uploadSuccess}"></div>
+          <div class="alert alert-danger" role="alert" th:if="${uploadError != null}"
+               th:text="${uploadError}"></div>
+          <div class="row g-4">
+            <div class="col-12 col-sm-6 col-xl-4" th:each="song, iterStat : ${songs}">
+              <article class="card h-100 bg-body-tertiary border border-secondary-subtle shadow-sm">
+                <button class="btn p-0 text-start border-0" type="button"
+                        data-bs-toggle="modal"
+                        th:attr="data-bs-target=|#chart-modal-${iterStat.index}|"
+                        th:aria-label="|Open chart for ${song.name}|">
+                  <img class="card-img-top chart-thumbnail p-3"
+                       th:if="${song.chartImage != null and !#strings.isEmpty(song.chartImage)}"
+                       th:src="${song.chartImage}"
+                       th:alt="|Song chart for ${song.name}|">
+                  <div class="chart-thumbnail d-flex align-items-center justify-content-center text-body-secondary"
+                       th:unless="${song.chartImage != null and !#strings.isEmpty(song.chartImage)}">
+                    Chart image coming soon
+                  </div>
+                </button>
+                <div class="card-body text-center">
+                  <h2 class="h5 card-title mb-0" th:text="${song.name}">Song title</h2>
+                  <form class="mt-3 text-start" method="post" enctype="multipart/form-data"
+                        th:action="@{/song-charts/{index}/upload(index=${song.index})}">
+                    <label class="form-label small" th:for="|chart-file-${song.index}|">Upload chart image</label>
+                    <input class="form-control form-control-sm mb-2"
+                           type="file" name="chart" accept="image/png,image/jpeg,image/gif"
+                           th:id="|chart-file-${song.index}|" required>
+                    <button class="btn btn-outline-primary btn-sm w-100" type="submit">Upload</button>
+                  </form>
+                </div>
+              </article>
+
+              <div class="modal fade" tabindex="-1"
+                   th:id="|chart-modal-${iterStat.index}|"
+                   th:attr="aria-labelledby=|chart-modal-title-${iterStat.index}|"
+                   aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
+                  <div class="modal-content bg-body-tertiary">
+                    <div class="modal-header">
+                      <h2 class="modal-title fs-5"
+                          th:id="|chart-modal-title-${iterStat.index}|"
+                          th:text="${song.name}">Song title</h2>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"
+                              aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                      <img class="img-fluid chart-preview"
+                           th:if="${song.chartImage != null and !#strings.isEmpty(song.chartImage)}"
+                           th:src="${song.chartImage}"
+                           th:alt="|Song chart for ${song.name}|">
+                      <p class="text-body-secondary mb-0"
+                         th:unless="${song.chartImage != null and !#strings.isEmpty(song.chartImage)}">
+                        This song chart has not been uploaded yet.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="mt-auto border-top border-secondary-subtle bg-body py-4 text-center text-body-secondary">
+      <div class="container">
+        <small>&copy; Practice Pal , Written by Dima Yaglin</small>
+      </div>
+    </footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
