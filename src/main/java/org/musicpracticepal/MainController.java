@@ -22,11 +22,27 @@ public class MainController {
 
     record RelativeMinor(String relativeMinor, String backingTrackUrl) {}
 
-    private record PracticeData(List<String> songs, LinkedHashMap<String, RelativeMinor> scales) {}
+    record Song(String name, List<String> links) {
+        Song {
+            name = name.trim();
+            links = List.copyOf(links);
+        }
+    }
+
+    record Lesson(String name, List<String> links) {
+        Lesson {
+            name = name.trim();
+            links = List.copyOf(links);
+        }
+    }
+
+    private record PracticeData(
+            List<Song> songs, List<Lesson> lessons, LinkedHashMap<String, RelativeMinor> scales) {}
 
     private static final LocalDate ROTATION_START = LocalDate.of(1970, 1, 5);
 
-    private final List<String> songs;
+    private final List<Song> songs;
+    private final List<Lesson> lessons;
     private final List<String> scales;
     private final Map<String, RelativeMinor> relativeMinors;
 
@@ -38,16 +54,21 @@ public class MainController {
     }
 
     MainController(PracticeData data) {
-        this(data.songs(), data.scales());
+        this(data.songs(), data.lessons(), data.scales());
     }
 
-    MainController(List<String> songs, Map<String, RelativeMinor> relativeMinors) {
+    MainController(List<Song> songs, List<Lesson> lessons, Map<String, RelativeMinor> relativeMinors) {
         this.songs = songs.stream()
-                .map(String::trim)
-                .filter(song -> !song.isEmpty())
+                .filter(song -> !song.name().isBlank())
                 .toList();
         if (this.songs.isEmpty()) {
             throw new IllegalStateException("The data JSON must contain at least one song");
+        }
+        this.lessons = lessons.stream()
+                .filter(lesson -> !lesson.name().isBlank())
+                .toList();
+        if (this.lessons.isEmpty()) {
+            throw new IllegalStateException("The data JSON must contain at least one lesson");
         }
         this.relativeMinors = Collections.unmodifiableMap(new LinkedHashMap<>(relativeMinors));
         this.scales = List.copyOf(this.relativeMinors.keySet());
@@ -62,7 +83,12 @@ public class MainController {
         String scale = scaleFor(today);
         model.addAttribute("scaleToPractice", scaleDisplay(scale));
         model.addAttribute("minorBackingTrackUrl", minorBackingTrackUrl(scale));
-        model.addAttribute("songToPractice", songFor(today));
+        Song song = songFor(today);
+        model.addAttribute("songToPractice", song.name());
+        model.addAttribute("songLinks", song.links());
+        Lesson lesson = lessonFor(today);
+        model.addAttribute("lessonToPractice", lesson.name());
+        model.addAttribute("lessonLinks", lesson.links());
         return "index";
     }
 
@@ -82,9 +108,11 @@ public class MainController {
             if (data.get("Songs") == null) {
                 throw new IllegalStateException("The data JSON must contain at least one song");
             }
-            List<String> songs = objectMapper.convertValue(
-                    data.get("Songs"), new TypeReference<>() {
-                    });
+            List<Song> songs = objectMapper.convertValue(data.get("Songs"), new TypeReference<>() {});
+            if (data.get("Lessons") == null) {
+                throw new IllegalStateException("The data JSON must contain at least one lesson");
+            }
+            List<Lesson> lessons = objectMapper.convertValue(data.get("Lessons"), new TypeReference<>() {});
             Object scaleData = data.get("Scales");
             if (scaleData == null) {
                 throw new IllegalStateException("The data JSON must contain at least one scale");
@@ -95,16 +123,21 @@ public class MainController {
             if (scales.isEmpty()) {
                 throw new IllegalStateException("The data JSON must contain at least one scale");
             }
-            return new PracticeData(songs, scales);
+            return new PracticeData(songs, lessons, scales);
         } catch (IOException e) {
             throw new IllegalStateException(
                     "Failed to load practice data from " + resource.getDescription(), e);
         }
     }
 
-    String songFor(LocalDate date) {
+    Song songFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
         return songs.get(Math.floorMod(daysSinceStart, songs.size()));
+    }
+
+    Lesson lessonFor(LocalDate date) {
+        long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
+        return lessons.get(Math.floorMod(daysSinceStart, lessons.size()));
     }
 
     String scaleFor(LocalDate date) {

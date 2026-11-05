@@ -78,6 +78,12 @@
                 <div class="card-body p-4 p-md-5 text-center">
                   <h2 class="card-title h2 fw-bold mb-3" id="song-heading">Song to practice</h2>
                   <p class="h5 text-primary mb-0" th:text="${songToPractice}">Ain't No Sunshine</p>
+                  <ul class="list-unstyled mt-3 mb-0" th:if="${!#lists.isEmpty(songLinks)}">
+                    <li th:each="songLink : ${songLinks}" class="mb-2">
+                      <a th:href="${songLink}" th:text="${songLink}"
+                         target="_blank" rel="noopener noreferrer"></a>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </section>
@@ -86,7 +92,13 @@
               <div class="card bg-body-tertiary border border-secondary-subtle shadow-sm">
                 <div class="card-body p-4 p-md-5 text-center">
                   <h2 class="card-title h2 fw-bold mb-3" id="lesson-heading">Lesson to practice</h2>
-                  <p class="text-body-secondary mb-0">Your next lesson will appear here.</p>
+                  <p class="h5 text-primary mb-0" th:text="${lessonToPractice}">Open chord transitions</p>
+                  <ul class="list-unstyled mt-3 mb-0" th:if="${!#lists.isEmpty(lessonLinks)}">
+                    <li th:each="lessonLink : ${lessonLinks}" class="mb-2">
+                      <a th:href="${lessonLink}" th:text="${lessonLink}"
+                         target="_blank" rel="noopener noreferrer"></a>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </section>

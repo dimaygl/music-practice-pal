@@ -1,7 +1,25 @@
 {
   "Songs" : [
-    "Ain't No Sunshine",
-    "Wind Cries Mary"
+    {
+      "name": "Ain't No Sunshine",
+      "links": [
+        "https://www.ultimate-guitar.com/search.php?search_type=title&value=Ain%27t+No+Sunshine"
+      ]
+    },
+    {
+      "name": "Wind Cries Mary",
+      "links": [
+        "https://www.ultimate-guitar.com/search.php?search_type=title&value=Wind+Cries+Mary"
+      ]
+    }
+  ],
+  "Lessons": [
+    {
+      "name": "Swamp Groove - Backporch Blues Bootcamp: Lesson 6",
+      "links": [
+        "https://justinjohnsonguitar.com/programs/backporch-blues-bootcamp?utm_source=product&utm_medium=share&utm_campaign=content_share&utm_term=3584842&utm_content=copy"
+      ]
+    }
   ],
   "Scales": {
     "A": {
