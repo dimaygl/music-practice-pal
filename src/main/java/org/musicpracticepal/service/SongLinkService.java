@@ -1,4 +1,4 @@
-package org.musicpracticepal;
+package org.musicpracticepal.service;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,34 +10,51 @@ import java.util.Locale;
 
 import javax.imageio.ImageIO;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.musicpracticepal.model.SongLink;
+import org.musicpracticepal.repository.SongLinkRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-@Component
-public class SongChartStorage {
+@Service
+public class SongLinkService {
 
     private static final List<String> IMAGE_EXTENSIONS = List.of("png", "jpg", "jpeg", "gif");
 
-    private final Path directory;
+    private final SongLinkRepository songLinkRepository;
+    private final Path chartDirectory;
 
-    @Autowired
-    public SongChartStorage(@Value("${practice-pal.upload-dir:uploads/song-charts}") String directory) {
-        this(Path.of(directory));
+    public SongLinkService(
+            SongLinkRepository songLinkRepository,
+            @Value("${practice-pal.upload-dir:uploads/song-charts}") String chartDirectory) {
+        this.songLinkRepository = songLinkRepository;
+        this.chartDirectory = Path.of(chartDirectory).toAbsolutePath().normalize();
     }
 
-    SongChartStorage(Path directory) {
-        this.directory = directory.toAbsolutePath().normalize();
+    @Transactional(readOnly = true)
+    public List<String> findBySongName(String songName) {
+        return songLinkRepository.findBySongNameOrderByIdAsc(songName).stream()
+                .map(SongLink::getLinkUrl)
+                .toList();
     }
 
-    public Path directory() {
-        return directory;
+    @Transactional
+    public boolean addLink(String songName, String linkUrl) {
+        if (songLinkRepository.existsBySongNameAndLinkUrl(songName, linkUrl)) {
+            return false;
+        }
+        songLinkRepository.save(new SongLink(songName, linkUrl));
+        return true;
     }
 
-    String imageUrl(int songIndex) {
+    public Path chartDirectory() {
+        return chartDirectory;
+    }
+
+    public String chartImageUrl(int songIndex) {
         for (String extension : IMAGE_EXTENSIONS) {
-            Path image = imagePath(songIndex, extension);
+            Path image = chartImagePath(songIndex, extension);
             if (Files.isRegularFile(image)) {
                 return "/uploaded-charts/" + image.getFileName();
             }
@@ -45,7 +62,7 @@ public class SongChartStorage {
         return null;
     }
 
-    void store(int songIndex, MultipartFile upload) throws IOException {
+    public void storeChart(int songIndex, MultipartFile upload) throws IOException {
         if (upload.isEmpty()) {
             throw new InvalidChartImageException("Choose an image to upload.");
         }
@@ -64,17 +81,17 @@ public class SongChartStorage {
             throw new InvalidChartImageException("The selected file is not a readable image.");
         }
 
-        Files.createDirectories(directory);
-        Path temporaryFile = Files.createTempFile(directory, "chart-", ".upload");
+        Files.createDirectories(chartDirectory);
+        Path temporaryFile = Files.createTempFile(chartDirectory, "chart-", ".upload");
         try {
             try (InputStream input = upload.getInputStream()) {
                 Files.copy(input, temporaryFile, StandardCopyOption.REPLACE_EXISTING);
             }
-            Files.move(temporaryFile, imagePath(songIndex, extension),
+            Files.move(temporaryFile, chartImagePath(songIndex, extension),
                     StandardCopyOption.REPLACE_EXISTING);
             for (String existingExtension : IMAGE_EXTENSIONS) {
                 if (!existingExtension.equals(extension)) {
-                    Files.deleteIfExists(imagePath(songIndex, existingExtension));
+                    Files.deleteIfExists(chartImagePath(songIndex, existingExtension));
                 }
             }
         } finally {
@@ -82,8 +99,8 @@ public class SongChartStorage {
         }
     }
 
-    private Path imagePath(int songIndex, String extension) {
-        return directory.resolve("chart-" + songIndex + "." + extension);
+    private Path chartImagePath(int songIndex, String extension) {
+        return chartDirectory.resolve("chart-" + songIndex + "." + extension);
     }
 
     private static String extensionOf(String filename) {
@@ -97,8 +114,8 @@ public class SongChartStorage {
         return filename.substring(extensionSeparator + 1).toLowerCase(Locale.ROOT);
     }
 
-    static class InvalidChartImageException extends RuntimeException {
-        InvalidChartImageException(String message) {
+    public static class InvalidChartImageException extends RuntimeException {
+        public InvalidChartImageException(String message) {
             super(message);
         }
     }

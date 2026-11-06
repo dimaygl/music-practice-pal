@@ -1,6 +1,9 @@
-package org.musicpracticepal;
+package org.musicpracticepal.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -13,6 +16,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.musicpracticepal.repository.SongLinkRepository;
+import org.musicpracticepal.service.SongLinkService;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
@@ -31,17 +36,17 @@ class MainControllerTests {
 
         MainController controller = new MainController(
                 List.of(
-                        new MainController.Song("Song One", List.of("https://example.com/song-one"), null),
-                        new MainController.Song("Song Two", List.of("https://example.com/song-two"), null)),
+                        new MainController.Song("Song One", null),
+                        new MainController.Song("Song Two", null)),
                 List.of(
                         new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")),
                         new MainController.Lesson("Lesson Two", List.of("https://example.com/lesson-two"))),
-                scales);
+                scales,
+                mock(SongLinkService.class));
         LocalDate rotationStart = LocalDate.of(1970, 1, 5);
 
         assertEquals("Song One", controller.songFor(rotationStart).name());
-        assertEquals(List.of("https://example.com/song-two"),
-                controller.songFor(rotationStart.plusDays(1)).links());
+        assertEquals("Song Two", controller.songFor(rotationStart.plusDays(1)).name());
         assertEquals("Song One", controller.songFor(rotationStart.plusDays(2)).name());
         assertEquals("Lesson One", controller.lessonFor(rotationStart).name());
         assertEquals(List.of("https://example.com/lesson-two"),
@@ -53,18 +58,21 @@ class MainControllerTests {
         Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
         scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
         List<MainController.Song> songs = List.of(
-                new MainController.Song("Song One", List.of("https://example.com/song-one"), null),
-                new MainController.Song("Song Two", List.of("https://example.com/song-two"), null));
+                new MainController.Song("Song One", null),
+                new MainController.Song("Song Two", null));
         List<MainController.Lesson> lessons = List.of(
                 new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")));
-        MainController controller = new MainController(songs, lessons, scales);
+        SongLinkService songLinkService = mock(SongLinkService.class);
+        when(songLinkService.findBySongName(anyString())).thenReturn(List.of("https://example.com/song-link"));
+        MainController controller = new MainController(
+                songs, lessons, scales, songLinkService);
         ExtendedModelMap model = new ExtendedModelMap();
 
         controller.home(model);
 
         MainController.Song selectedSong = controller.songFor(LocalDate.now());
         assertEquals(selectedSong.name(), model.get("songToPractice"));
-        assertEquals(selectedSong.links(), model.get("songLinks"));
+        assertEquals(List.of("https://example.com/song-link"), model.get("songLinks"));
         MainController.Lesson selectedLesson = controller.lessonFor(LocalDate.now());
         assertEquals(selectedLesson.name(), model.get("lessonToPractice"));
         assertEquals(selectedLesson.links(), model.get("lessonLinks"));
@@ -75,12 +83,13 @@ class MainControllerTests {
         Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
         scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
         List<MainController.Song> songs = List.of(
-                new MainController.Song("Song One", List.of(), null),
-                new MainController.Song("Song Two", List.of(), "/song-charts/song-two.jpg"));
+                new MainController.Song("Song One", null),
+                new MainController.Song("Song Two", "/song-charts/song-two.jpg"));
         MainController controller = new MainController(
                 songs,
                 List.of(new MainController.Lesson("Lesson One", List.of())),
-                scales);
+                scales,
+                mock(SongLinkService.class));
         ExtendedModelMap model = new ExtendedModelMap();
 
         assertEquals("song-charts", controller.songCharts(model));
@@ -96,12 +105,13 @@ class MainControllerTests {
     void uploadingChartMakesItAvailableInTheGallery() throws IOException {
         Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
         scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
-        SongChartStorage storage = new SongChartStorage(uploadDirectory);
+        SongLinkService songLinkService = new SongLinkService(
+                mock(SongLinkRepository.class), uploadDirectory.toString());
         MainController controller = new MainController(
-                List.of(new MainController.Song("Song One", List.of(), null)),
+                List.of(new MainController.Song("Song One", null)),
                 List.of(new MainController.Lesson("Lesson One", List.of())),
                 scales,
-                storage);
+                songLinkService);
         ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", imageBytes);
         MockMultipartFile upload = new MockMultipartFile(

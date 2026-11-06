@@ -1,8 +1,8 @@
-package org.musicpracticepal;
+package org.musicpracticepal.controller;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
+import java.net.URI;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
+import org.musicpracticepal.service.SongLinkService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -29,10 +30,9 @@ public class MainController {
 
     record RelativeMinor(String relativeMinor, String backingTrackUrl) {}
 
-    record Song(String name, List<String> links, String chartImage) {
+    record Song(String name, String chartImage) {
         Song {
             name = name.trim();
-            links = List.copyOf(links);
         }
     }
 
@@ -54,34 +54,25 @@ public class MainController {
     private final List<Lesson> lessons;
     private final List<String> scales;
     private final Map<String, RelativeMinor> relativeMinors;
-    private final SongChartStorage chartStorage;
+    private final SongLinkService songLinkService;
 
     @Autowired
     public MainController(
             @Value("classpath:data.json") Resource dataFile,
             ObjectMapper objectMapper,
-            SongChartStorage chartStorage) {
-        this(loadPracticeData(dataFile, objectMapper), chartStorage);
+            SongLinkService songLinkService) {
+        this(loadPracticeData(dataFile, objectMapper), songLinkService);
     }
 
-    MainController(PracticeData data) {
-        this(data.songs(), data.lessons(), data.scales(),
-                new SongChartStorage(Path.of("uploads/song-charts")));
-    }
-
-    private MainController(PracticeData data, SongChartStorage chartStorage) {
-        this(data.songs(), data.lessons(), data.scales(), chartStorage);
-    }
-
-    MainController(List<Song> songs, List<Lesson> lessons, Map<String, RelativeMinor> relativeMinors) {
-        this(songs, lessons, relativeMinors, new SongChartStorage(Path.of("uploads/song-charts")));
+    private MainController(PracticeData data, SongLinkService songLinkService) {
+        this(data.songs(), data.lessons(), data.scales(), songLinkService);
     }
 
     MainController(
             List<Song> songs,
             List<Lesson> lessons,
             Map<String, RelativeMinor> relativeMinors,
-            SongChartStorage chartStorage) {
+            SongLinkService songLinkService) {
         this.songs = songs.stream()
                 .filter(song -> !song.name().isBlank())
                 .toList();
@@ -95,7 +86,7 @@ public class MainController {
             throw new IllegalStateException("The data JSON must contain at least one lesson");
         }
         this.relativeMinors = Collections.unmodifiableMap(new LinkedHashMap<>(relativeMinors));
-        this.chartStorage = chartStorage;
+        this.songLinkService = songLinkService;
         this.scales = List.copyOf(this.relativeMinors.keySet());
         if (this.scales.isEmpty()) {
             throw new IllegalStateException("The data JSON must contain at least one scale");
@@ -108,13 +99,41 @@ public class MainController {
         String scale = scaleFor(today);
         model.addAttribute("scaleToPractice", scaleDisplay(scale));
         model.addAttribute("minorBackingTrackUrl", minorBackingTrackUrl(scale));
-        Song song = songFor(today);
+        int songIndex = songIndexFor(today);
+        Song song = songs.get(songIndex);
         model.addAttribute("songToPractice", song.name());
-        model.addAttribute("songLinks", song.links());
+        model.addAttribute("songIndex", songIndex);
+        model.addAttribute("songLinks", songLinkService.findBySongName(song.name()));
         Lesson lesson = lessonFor(today);
         model.addAttribute("lessonToPractice", lesson.name());
         model.addAttribute("lessonLinks", lesson.links());
         return "index";
+    }
+
+    @PostMapping("/songs/{index}/links")
+    public String addSongLink(
+            @PathVariable int index,
+            @RequestParam("url") String url,
+            RedirectAttributes redirectAttributes) {
+        if (index < 0 || index >= songs.size()) {
+            redirectAttributes.addFlashAttribute("linkError", "That song could not be found.");
+            return "redirect:/";
+        }
+
+        String normalizedUrl = url.trim();
+        if (!isValidSongLink(normalizedUrl)) {
+            redirectAttributes.addFlashAttribute(
+                    "linkError", "Enter a valid HTTP or HTTPS link.");
+            return "redirect:/";
+        }
+
+        Song song = songs.get(index);
+        if (songLinkService.addLink(song.name(), normalizedUrl)) {
+            redirectAttributes.addFlashAttribute("linkSuccess", "Link added for " + song.name() + ".");
+        } else {
+            redirectAttributes.addFlashAttribute("linkError", "That link has already been added.");
+        }
+        return "redirect:/";
     }
 
     @GetMapping("/song-charts")
@@ -122,7 +141,7 @@ public class MainController {
         List<SongCard> songCards = IntStream.range(0, songs.size())
                 .mapToObj(index -> {
                     Song song = songs.get(index);
-                    String uploadedImage = chartStorage.imageUrl(index);
+                    String uploadedImage = songLinkService.chartImageUrl(index);
                     String chartImage = uploadedImage == null ? song.chartImage() : uploadedImage;
                     return new SongCard(index, song.name(), chartImage);
                 })
@@ -141,10 +160,10 @@ public class MainController {
             return "redirect:/song-charts";
         }
         try {
-            chartStorage.store(index, upload);
+            songLinkService.storeChart(index, upload);
             redirectAttributes.addFlashAttribute(
                     "uploadSuccess", "Chart uploaded for " + songs.get(index).name() + ".");
-        } catch (SongChartStorage.InvalidChartImageException e) {
+        } catch (SongLinkService.InvalidChartImageException e) {
             redirectAttributes.addFlashAttribute("uploadError", e.getMessage());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to save song chart upload", e);
@@ -198,6 +217,27 @@ public class MainController {
     Lesson lessonFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
         return lessons.get(Math.floorMod(daysSinceStart, lessons.size()));
+    }
+
+    int songIndexFor(LocalDate date) {
+        long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
+        return Math.floorMod(daysSinceStart, songs.size());
+    }
+
+    private static boolean isValidSongLink(String url) {
+        if (url.isBlank() || url.length() > 2048) {
+            return false;
+        }
+        try {
+            URI uri = URI.create(url);
+            String scheme = uri.getScheme();
+            return uri.isAbsolute()
+                    && uri.getHost() != null
+                    && uri.getUserInfo() == null
+                    && ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     String scaleFor(LocalDate date) {

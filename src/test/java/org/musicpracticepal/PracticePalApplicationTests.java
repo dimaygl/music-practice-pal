@@ -1,6 +1,7 @@
 package org.musicpracticepal;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -10,7 +11,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
+
 import org.junit.jupiter.api.Test;
+import org.musicpracticepal.repository.SongLinkRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -20,11 +24,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @AutoConfigureMockMvc
-@SpringBootTest
+@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:practicepal-test;DB_CLOSE_DELAY=-1")
 class PracticePalApplicationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private SongLinkRepository songLinkRepository;
 
     @Test
     void contextLoads() {
@@ -68,5 +75,43 @@ class PracticePalApplicationTests {
                         .with(csrf()))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/song-charts"));
+    }
+
+    @Test
+    void adminCanStoreSongLinkAndAnonymousCannot() throws Exception {
+        int songIndex = Math.floorMod(
+                LocalDate.now().toEpochDay() - LocalDate.of(1970, 1, 5).toEpochDay(), 2);
+        String linkUrl = "https://example.com/practice-link";
+
+        mockMvc.perform(post("/songs/" + songIndex + "/links")
+                        .param("url", linkUrl)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/?loginRequired"));
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("username", "admin")
+                        .param("password", "password")
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+        mockMvc.perform(get("/").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Add a song link")));
+
+        mockMvc.perform(post("/songs/" + songIndex + "/links")
+                        .param("url", linkUrl)
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/"));
+
+        String songName = songIndex == 0 ? "Ain't No Sunshine" : "Wind Cries Mary";
+        assertTrue(songLinkRepository.existsBySongNameAndLinkUrl(songName, linkUrl));
+        mockMvc.perform(get("/").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(linkUrl)));
     }
 }

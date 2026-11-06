@@ -94,6 +94,9 @@
                            th:id="|chart-file-${song.index}|" required>
                     <button class="btn btn-outline-primary btn-sm w-100" type="submit">Upload</button>
                   </form>
+                  <button class="btn btn-outline-primary btn-sm w-100 mt-3" type="button"
+                          data-bs-toggle="modal" data-bs-target="#login-modal"
+                          sec:authorize="isAnonymous()">Log in to upload</button>
                 </div>
               </article>
 

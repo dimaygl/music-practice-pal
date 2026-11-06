@@ -87,12 +87,26 @@
                 <div class="card-body p-4 p-md-5 text-center">
                   <h2 class="card-title h2 fw-bold mb-3" id="song-heading">Song to practice</h2>
                   <p class="h5 text-primary mb-0" th:text="${songToPractice}">Ain't No Sunshine</p>
+                  <div class="alert alert-success mt-3 mb-0" role="status"
+                       th:if="${linkSuccess != null}" th:text="${linkSuccess}"></div>
+                  <div class="alert alert-danger mt-3 mb-0" role="alert"
+                       th:if="${linkError != null}" th:text="${linkError}"></div>
                   <ul class="list-unstyled mt-3 mb-0" th:if="${!#lists.isEmpty(songLinks)}">
                     <li th:each="songLink : ${songLinks}" class="mb-2">
                       <a th:href="${songLink}" th:text="${songLink}"
                          target="_blank" rel="noopener noreferrer"></a>
                     </li>
                   </ul>
+                  <form class="mt-4 text-start" method="post"
+                        sec:authorize="hasRole('ADMIN')"
+                        th:action="@{/songs/{index}/links(index=${songIndex})}">
+                    <label class="form-label" for="song-link-url">Add a song link</label>
+                    <div class="input-group">
+                      <input class="form-control" id="song-link-url" name="url" type="url"
+                             maxlength="2048" placeholder="https://example.com/song" required>
+                      <button class="btn btn-outline-primary" type="submit">Add link</button>
+                    </div>
+                  </form>
                 </div>
               </div>
             </section>

@@ -1,6 +1,6 @@
 package org.musicpracticepal.config;
 
-import org.musicpracticepal.SongChartStorage;
+import org.musicpracticepal.service.SongLinkService;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -8,15 +8,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 class ChartUploadConfig implements WebMvcConfigurer {
 
-    private final SongChartStorage chartStorage;
+    private final SongLinkService songLinkService;
 
-    ChartUploadConfig(SongChartStorage chartStorage) {
-        this.chartStorage = chartStorage;
+    ChartUploadConfig(SongLinkService songLinkService) {
+        this.songLinkService = songLinkService;
     }
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String location = chartStorage.directory().toUri().toString();
+        String location = songLinkService.chartDirectory().toUri().toString();
         if (!location.endsWith("/")) {
             location += "/";
         }
