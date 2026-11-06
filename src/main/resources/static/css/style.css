@@ -1,0 +1,9 @@
+.chart-thumbnail {
+  height: 15rem;
+  object-fit: contain;
+}
+
+.chart-preview {
+  max-height: 75vh;
+  object-fit: contain;
+}
