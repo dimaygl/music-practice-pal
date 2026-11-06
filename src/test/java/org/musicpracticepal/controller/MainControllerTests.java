@@ -72,6 +72,21 @@ class MainControllerTests {
 
         MainController.Song selectedSong = controller.songFor(LocalDate.now());
         assertEquals(selectedSong.name(), model.get("songToPractice"));
+        assertEquals(List.of("A", "E", "F#m", "D"), model.get("chordProgression"));
+        @SuppressWarnings("unchecked")
+        List<MainController.ProgressionOption> progressionOptions =
+                (List<MainController.ProgressionOption>) model.get("progressionOptions");
+        assertEquals(7, progressionOptions.size());
+        assertEquals("A|F#m|D|E", progressionOptions.get(1).chordSequence());
+        assertEquals("Bm|E|A|F#m", progressionOptions.get(5).chordSequence());
+        assertEquals("A7|A7|A7|A7|D7|D7|A7|A7|E7|D7|A7|A7",
+                progressionOptions.get(6).chordSequence());
+        assertEquals("A|E|F#m|D", progressionOptions.get(0).chordSequencesByScale());
+        @SuppressWarnings("unchecked")
+        List<MainController.ScaleOption> scaleOptions =
+                (List<MainController.ScaleOption>) model.get("scaleOptions");
+        assertEquals(1, scaleOptions.size());
+        assertEquals("A", model.get("currentScaleKey"));
         assertEquals(List.of("https://example.com/song-link"), model.get("songLinks"));
         MainController.Lesson selectedLesson = controller.lessonFor(LocalDate.now());
         assertEquals(selectedLesson.name(), model.get("lessonToPractice"));

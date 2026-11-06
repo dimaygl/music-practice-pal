@@ -41,8 +41,22 @@ class PracticePalApplicationTests {
     void homePageRendersLoginModal() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
+                .andExpect(content().string(containsString("aria-label=\"Play backing track\"")))
+                .andExpect(content().string(containsString("progression-type")))
+                .andExpect(content().string(containsString("Jazz turnaround")))
+                .andExpect(content().string(containsString("12-bar Blues")))
+                .andExpect(content().string(containsString("id=\"scale-type\"")))
+                .andExpect(content().string(containsString("progression-tempo")))
+                .andExpect(content().string(containsString("/js/chord-progression.js")))
                 .andExpect(content().string(containsString("Log in to Practice Pal")))
                 .andExpect(content().string(containsString("name=\"username\"")));
+    }
+
+    @Test
+    void pianoSampleIsServedForProgressionPlayback() throws Exception {
+        mockMvc.perform(get("/audio/piano/C4.mp3"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("audio/mpeg"));
     }
 
     @Test

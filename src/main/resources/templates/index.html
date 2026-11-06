@@ -67,12 +67,60 @@
               <div class="card bg-body-tertiary border border-secondary-subtle shadow-sm">
                 <div class="card-body p-4 p-md-5 text-center">
                   <h1 class="card-title h2 fw-bold mb-3" id="scale-heading">Scale to Practice</h1>
-                  <p class="h5 text-primary mb-3" th:text="${scaleToPractice}">A</p>
-                  <div class="mb-3" th:if="${minorBackingTrackUrl != null}">
-                    <p class="mb-2">Minor scale backing track</p>
-                    <audio controls preload="none" th:src="${minorBackingTrackUrl}">
-                      Your browser does not support audio playback.
-                    </audio>
+                  <label class="form-label mb-2" for="scale-type">Key</label>
+                  <select class="form-select mx-auto mb-3" id="scale-type"
+                          aria-label="Practice scale" style="max-width: 24rem">
+                    <option th:each="option : ${scaleOptions}" th:value="${option.key}"
+                            th:text="${option.label}"
+                            th:selected="${option.key == currentScaleKey}">A</option>
+                  </select>
+                  <p class="h5 text-primary mb-3" id="scale-display"
+                     th:text="${scaleToPractice}">A</p>
+                  <div class="mb-3" id="chord-progression">
+                    <label class="form-label mb-2" for="progression-type">Progression</label>
+                    <select class="form-select mx-auto mb-3" id="progression-type"
+                            aria-label="Chord progression type" style="max-width: 24rem">
+                      <option th:each="option : ${progressionOptions}"
+                              th:value="${option.id}" th:text="${option.label}"
+                              th:data-chords="${option.chordSequence}"
+                              th:data-chords-by-scale="${option.chordSequencesByScale}"
+                              th:selected="${optionStat.first}">Pop (I–V–vi–IV)</option>
+                    </select>
+                    <ul class="list-inline mb-0">
+                      <li class="list-inline-item chord-progression-chord"
+                          th:each="chord : ${chordProgression}"
+                          th:text="${chord}">A</li>
+                    </ul>
+                    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mt-3">
+                      <button class="btn btn-primary" id="toggle-progression" type="button"
+                              aria-label="Play backing track" title="Play backing track"
+                              aria-pressed="false">
+                        <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="20"
+                             height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                          <path d="M6 3.5a.5.5 0 0 1 .76-.43l6 4a.5.5 0 0 1 0 .86l-6 4A.5.5 0 0 1 6 11.5z"/>
+                        </svg>
+                        <svg class="stop-icon d-none" xmlns="http://www.w3.org/2000/svg" width="20"
+                             height="20" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                          <path d="M4.5 4A.5.5 0 0 1 5 3.5h6a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H5a.5.5 0 0 1-.5-.5z"/>
+                        </svg>
+                      </button>
+                      <label class="form-label mb-0 ms-2" for="progression-tempo">Tempo</label>
+                      <div class="input-group" style="width: 8rem">
+                        <input class="form-control" id="progression-tempo" type="number"
+                               min="40" max="200" value="80" aria-label="Tempo in beats per minute">
+                        <span class="input-group-text">BPM</span>
+                      </div>
+                    </div>
+                    <p class="small text-body-secondary mt-2 mb-0" id="progression-status"
+                       role="status" aria-live="polite"></p>
+                    <p class="small text-body-secondary mb-0">
+                      Piano samples by Nicholaus P. Brosowsky from VSO2, via
+                      <a href="https://github.com/nbrosowsky/tonejs-instruments"
+                         target="_blank" rel="noopener noreferrer">tonejs-instruments</a>,
+                      licensed under
+                      <a href="https://creativecommons.org/licenses/by/3.0/"
+                         target="_blank" rel="noopener noreferrer">CC BY 3.0</a>.
+                    </p>
                   </div>
                   <ul class="d-inline-block text-start mb-0">
                     <li>all positions</li>
@@ -141,5 +189,6 @@
       crossorigin="anonymous"
     ></script>
     <div th:replace="~{fragments/auth :: loginModal}"></div>
+    <script defer th:src="@{/js/chord-progression.js}"></script>
   </body>
 </html>

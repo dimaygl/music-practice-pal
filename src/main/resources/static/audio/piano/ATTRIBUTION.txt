@@ -1,0 +1,9 @@
+Piano samples
+
+Samples curated and edited by Nicholaus P. Brosowsky in tonejs-instruments:
+https://github.com/nbrosowsky/tonejs-instruments
+Original piano samples sourced from Versilian Studios Chamber Orchestra Community
+(VSO2): http://vis.versilstudios.net/vsco-community.html
+
+License: Creative Commons Attribution 3.0 (CC BY 3.0)
+https://creativecommons.org/licenses/by/3.0/
