@@ -16,8 +16,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.musicpracticepal.repository.SongLinkRepository;
-import org.musicpracticepal.service.SongLinkService;
+import org.musicpracticepal.repository.SongRepository;
+import org.musicpracticepal.service.SongService;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
@@ -42,7 +42,7 @@ class MainControllerTests {
                         new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")),
                         new MainController.Lesson("Lesson Two", List.of("https://example.com/lesson-two"))),
                 scales,
-                mock(SongLinkService.class));
+                mock(SongService.class));
         LocalDate rotationStart = LocalDate.of(1970, 1, 5);
 
         assertEquals("Song One", controller.songFor(rotationStart).name());
@@ -62,10 +62,10 @@ class MainControllerTests {
                 new MainController.Song("Song Two", null));
         List<MainController.Lesson> lessons = List.of(
                 new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")));
-        SongLinkService songLinkService = mock(SongLinkService.class);
-        when(songLinkService.findBySongName(anyString())).thenReturn(List.of("https://example.com/song-link"));
+        SongService songService = mock(SongService.class);
+        when(songService.findBySongName(anyString())).thenReturn(List.of("https://example.com/song-link"));
         MainController controller = new MainController(
-                songs, lessons, scales, songLinkService);
+                songs, lessons, scales, songService);
         ExtendedModelMap model = new ExtendedModelMap();
 
         controller.home(model);
@@ -89,7 +89,7 @@ class MainControllerTests {
                 songs,
                 List.of(new MainController.Lesson("Lesson One", List.of())),
                 scales,
-                mock(SongLinkService.class));
+                mock(SongService.class));
         ExtendedModelMap model = new ExtendedModelMap();
 
         assertEquals("song-charts", controller.songCharts(model));
@@ -105,13 +105,13 @@ class MainControllerTests {
     void uploadingChartMakesItAvailableInTheGallery() throws IOException {
         Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
         scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
-        SongLinkService songLinkService = new SongLinkService(
-                mock(SongLinkRepository.class), uploadDirectory.toString());
+        SongService songService = new SongService(
+                mock(SongRepository.class), uploadDirectory.toString());
         MainController controller = new MainController(
                 List.of(new MainController.Song("Song One", null)),
                 List.of(new MainController.Lesson("Lesson One", List.of())),
                 scales,
-                songLinkService);
+                songService);
         ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", imageBytes);
         MockMultipartFile upload = new MockMultipartFile(

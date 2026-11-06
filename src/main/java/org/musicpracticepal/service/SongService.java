@@ -10,41 +10,41 @@ import java.util.Locale;
 
 import javax.imageio.ImageIO;
 
-import org.musicpracticepal.model.SongLink;
-import org.musicpracticepal.repository.SongLinkRepository;
+import org.musicpracticepal.model.Song;
+import org.musicpracticepal.repository.SongRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
-public class SongLinkService {
+public class SongService {
 
     private static final List<String> IMAGE_EXTENSIONS = List.of("png", "jpg", "jpeg", "gif");
 
-    private final SongLinkRepository songLinkRepository;
+    private final SongRepository songRepository;
     private final Path chartDirectory;
 
-    public SongLinkService(
-            SongLinkRepository songLinkRepository,
+    public SongService(
+            SongRepository songRepository,
             @Value("${practice-pal.upload-dir:uploads/song-charts}") String chartDirectory) {
-        this.songLinkRepository = songLinkRepository;
+        this.songRepository = songRepository;
         this.chartDirectory = Path.of(chartDirectory).toAbsolutePath().normalize();
     }
 
     @Transactional(readOnly = true)
     public List<String> findBySongName(String songName) {
-        return songLinkRepository.findBySongNameOrderByIdAsc(songName).stream()
-                .map(SongLink::getLinkUrl)
+        return songRepository.findBySongNameOrderByIdAsc(songName).stream()
+                .map(Song::getLinkUrl)
                 .toList();
     }
 
     @Transactional
     public boolean addLink(String songName, String linkUrl) {
-        if (songLinkRepository.existsBySongNameAndLinkUrl(songName, linkUrl)) {
+        if (songRepository.existsBySongNameAndLinkUrl(songName, linkUrl)) {
             return false;
         }
-        songLinkRepository.save(new SongLink(songName, linkUrl));
+        songRepository.save(new Song(songName, linkUrl));
         return true;
     }
 

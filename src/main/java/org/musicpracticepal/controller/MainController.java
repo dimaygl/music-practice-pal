@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import org.musicpracticepal.service.SongLinkService;
+import org.musicpracticepal.service.SongService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -54,25 +54,25 @@ public class MainController {
     private final List<Lesson> lessons;
     private final List<String> scales;
     private final Map<String, RelativeMinor> relativeMinors;
-    private final SongLinkService songLinkService;
+    private final SongService songService;
 
     @Autowired
     public MainController(
             @Value("classpath:data.json") Resource dataFile,
             ObjectMapper objectMapper,
-            SongLinkService songLinkService) {
-        this(loadPracticeData(dataFile, objectMapper), songLinkService);
+            SongService songService) {
+        this(loadPracticeData(dataFile, objectMapper), songService);
     }
 
-    private MainController(PracticeData data, SongLinkService songLinkService) {
-        this(data.songs(), data.lessons(), data.scales(), songLinkService);
+    private MainController(PracticeData data, SongService songService) {
+        this(data.songs(), data.lessons(), data.scales(), songService);
     }
 
     MainController(
             List<Song> songs,
             List<Lesson> lessons,
             Map<String, RelativeMinor> relativeMinors,
-            SongLinkService songLinkService) {
+            SongService songService) {
         this.songs = songs.stream()
                 .filter(song -> !song.name().isBlank())
                 .toList();
@@ -86,7 +86,7 @@ public class MainController {
             throw new IllegalStateException("The data JSON must contain at least one lesson");
         }
         this.relativeMinors = Collections.unmodifiableMap(new LinkedHashMap<>(relativeMinors));
-        this.songLinkService = songLinkService;
+        this.songService = songService;
         this.scales = List.copyOf(this.relativeMinors.keySet());
         if (this.scales.isEmpty()) {
             throw new IllegalStateException("The data JSON must contain at least one scale");
@@ -103,7 +103,7 @@ public class MainController {
         Song song = songs.get(songIndex);
         model.addAttribute("songToPractice", song.name());
         model.addAttribute("songIndex", songIndex);
-        model.addAttribute("songLinks", songLinkService.findBySongName(song.name()));
+        model.addAttribute("songLinks", songService.findBySongName(song.name()));
         Lesson lesson = lessonFor(today);
         model.addAttribute("lessonToPractice", lesson.name());
         model.addAttribute("lessonLinks", lesson.links());
@@ -128,7 +128,7 @@ public class MainController {
         }
 
         Song song = songs.get(index);
-        if (songLinkService.addLink(song.name(), normalizedUrl)) {
+        if (songService.addLink(song.name(), normalizedUrl)) {
             redirectAttributes.addFlashAttribute("linkSuccess", "Link added for " + song.name() + ".");
         } else {
             redirectAttributes.addFlashAttribute("linkError", "That link has already been added.");
@@ -141,7 +141,7 @@ public class MainController {
         List<SongCard> songCards = IntStream.range(0, songs.size())
                 .mapToObj(index -> {
                     Song song = songs.get(index);
-                    String uploadedImage = songLinkService.chartImageUrl(index);
+                    String uploadedImage = songService.chartImageUrl(index);
                     String chartImage = uploadedImage == null ? song.chartImage() : uploadedImage;
                     return new SongCard(index, song.name(), chartImage);
                 })
@@ -160,10 +160,10 @@ public class MainController {
             return "redirect:/song-charts";
         }
         try {
-            songLinkService.storeChart(index, upload);
+            songService.storeChart(index, upload);
             redirectAttributes.addFlashAttribute(
                     "uploadSuccess", "Chart uploaded for " + songs.get(index).name() + ".");
-        } catch (SongLinkService.InvalidChartImageException e) {
+        } catch (SongService.InvalidChartImageException e) {
             redirectAttributes.addFlashAttribute("uploadError", e.getMessage());
         } catch (IOException e) {
             throw new IllegalStateException("Failed to save song chart upload", e);

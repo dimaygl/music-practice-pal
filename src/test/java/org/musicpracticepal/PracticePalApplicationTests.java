@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
-import org.musicpracticepal.repository.SongLinkRepository;
+import org.musicpracticepal.repository.SongRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -31,7 +31,7 @@ class PracticePalApplicationTests {
     private MockMvc mockMvc;
 
     @Autowired
-    private SongLinkRepository songLinkRepository;
+    private SongRepository songRepository;
 
     @Test
     void contextLoads() {
@@ -109,7 +109,7 @@ class PracticePalApplicationTests {
                 .andExpect(redirectedUrl("/"));
 
         String songName = songIndex == 0 ? "Ain't No Sunshine" : "Wind Cries Mary";
-        assertTrue(songLinkRepository.existsBySongNameAndLinkUrl(songName, linkUrl));
+        assertTrue(songRepository.existsBySongNameAndLinkUrl(songName, linkUrl));
         mockMvc.perform(get("/").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(linkUrl)));
