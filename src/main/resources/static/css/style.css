@@ -7,3 +7,214 @@
   max-height: 75vh;
   object-fit: contain;
 }
+:root {
+  color-scheme: dark;
+  --bs-body-bg: #0c1015;
+  --bs-body-color: #e7ebf0;
+  --bs-secondary-color: #98a2ae;
+  --bs-tertiary-bg: #151b23;
+  --bs-border-color: #29323d;
+  --bs-border-color-translucent: rgb(151 164 178 / 18%);
+  --bs-primary: #d7a45b;
+  --bs-primary-rgb: 215, 164, 91;
+  --bs-link-color: #e0b36f;
+  --bs-link-hover-color: #f0c98e;
+  --bs-body-font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% -18rem, rgb(215 164 91 / 9%), transparent 48rem),
+    var(--bs-body-bg) !important;
+  letter-spacing: 0.01em;
+}
+
+.navbar {
+  background-color: rgb(12 16 21 / 92%) !important;
+  backdrop-filter: blur(12px);
+}
+
+.navbar-brand {
+  letter-spacing: 0;
+}
+
+.navbar-brand > span:first-child {
+  width: 3rem;
+  height: 3rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.9rem;
+  background: linear-gradient(145deg, #202832, #12171e);
+  box-shadow: inset 0 1px rgb(255 255 255 / 5%);
+}
+
+.navbar-brand > span:first-child .fs-1 {
+  font-size: 1.65rem !important;
+}
+
+main {
+  width: 100%;
+}
+
+.card {
+  --bs-card-bg: #151b23;
+  --bs-card-border-color: #29323d;
+  --bs-card-border-radius: 1rem;
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 15%) !important;
+}
+
+aside .card {
+  box-shadow: none !important;
+}
+
+.card-body {
+  color: var(--bs-body-color);
+}
+
+.card-title {
+  letter-spacing: -0.025em;
+}
+
+h1,
+h2 {
+  letter-spacing: -0.03em;
+}
+
+.text-primary {
+  color: var(--bs-primary) !important;
+}
+
+.nav-pills {
+  --bs-nav-pills-link-active-bg: rgb(215 164 91 / 15%);
+  --bs-nav-pills-link-active-color: #f0c98e;
+}
+
+.nav-pills .nav-link {
+  color: #aab4c0;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.nav-pills .nav-link:hover {
+  color: var(--bs-body-color);
+  background-color: rgb(255 255 255 / 4%);
+}
+
+.nav-pills .nav-link.active {
+  border-color: rgb(215 164 91 / 25%);
+  font-weight: 600;
+}
+
+.btn {
+  --bs-btn-border-radius: 0.65rem;
+  font-weight: 600;
+}
+
+.btn-primary {
+  --bs-btn-color: #17130e;
+  --bs-btn-bg: #d7a45b;
+  --bs-btn-border-color: #d7a45b;
+  --bs-btn-hover-color: #17130e;
+  --bs-btn-hover-bg: #e5b872;
+  --bs-btn-hover-border-color: #e5b872;
+  --bs-btn-active-color: #17130e;
+  --bs-btn-active-bg: #c4934c;
+  --bs-btn-active-border-color: #c4934c;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #e0b36f;
+  --bs-btn-border-color: #80643e;
+  --bs-btn-hover-color: #17130e;
+  --bs-btn-hover-bg: #d7a45b;
+  --bs-btn-hover-border-color: #d7a45b;
+}
+
+.form-control,
+.input-group-text {
+  background-color: #0e1319;
+  border-color: #303a46;
+  color: var(--bs-body-color);
+}
+
+.form-control:focus {
+  background-color: #0e1319;
+  border-color: #b7894d;
+  color: var(--bs-body-color);
+  box-shadow: 0 0 0 0.2rem rgb(215 164 91 / 16%);
+}
+
+.form-control::placeholder {
+  color: #778391;
+}
+
+.form-control:focus::-webkit-file-upload-button {
+  background-color: #202832;
+}
+
+a {
+  text-underline-offset: 0.2em;
+}
+
+.chart-thumbnail {
+  height: 15rem;
+  object-fit: contain;
+}
+
+.chart-preview {
+  max-height: 75vh;
+  object-fit: contain;
+}
+
+.chart-thumbnail:not(img) {
+  border-bottom: 1px solid var(--bs-border-color);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 2%), transparent),
+    #10151b;
+}
+
+article.card > button {
+  overflow: hidden;
+  border-radius: 1rem 1rem 0 0;
+}
+
+.card button img.chart-thumbnail {
+  transition: transform 220ms ease, filter 220ms ease;
+}
+
+.card button:hover img.chart-thumbnail {
+  transform: scale(1.025);
+  filter: brightness(1.08);
+}
+
+audio {
+  max-width: 100%;
+  accent-color: var(--bs-primary);
+}
+
+footer {
+  background-color: rgb(12 16 21 / 75%) !important;
+}
+
+.modal-content {
+  --bs-modal-bg: #151b23;
+  --bs-modal-border-color: #303a46;
+  --bs-modal-border-radius: 1rem;
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 45%);
+}
+
+@media (min-width: 992px) {
+  aside .card {
+    position: sticky;
+    top: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
