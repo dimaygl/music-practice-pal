@@ -1,0 +1,40 @@
+<th:block th:fragment="loginModal">
+  <div class="modal fade" id="login-modal" tabindex="-1"
+       aria-labelledby="login-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-body-tertiary">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="login-modal-title">Log in to Practice Pal</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger" role="alert" th:if="${param.loginError != null}">
+            Invalid username or password.
+          </div>
+          <div class="alert alert-info" role="status" th:if="${param.loginRequired != null}">
+            Log in as an administrator to upload song charts.
+          </div>
+          <form method="post" th:action="@{/login}">
+            <div class="mb-3">
+              <label class="form-label" for="login-username">Username</label>
+              <input class="form-control" id="login-username" name="username"
+                     type="text" autocomplete="username" required autofocus>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="login-password">Password</label>
+              <input class="form-control" id="login-password" name="password"
+                     type="password" autocomplete="current-password" required>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Log in</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    if (new URLSearchParams(window.location.search).has("loginError")
+        || new URLSearchParams(window.location.search).has("loginRequired")) {
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("login-modal")).show();
+    }
+  </script>
+</th:block>

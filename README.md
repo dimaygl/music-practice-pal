@@ -4,12 +4,13 @@
 
 Practice Pal is a Spring Boot web application for keeping guitar practice focused. Its home page brings together a daily scale, song, and lesson in one place, with a separate entry point for song charts.
 
-> **Project status:** The dashboard selects a daily song, lesson, scale, and minor backing track from local data. User accounts, saved practice plans, and persistence are not implemented.
+> **Project status:** The dashboard selects a daily song, lesson, scale, and minor backing track from local data. An in-memory administrator account protects song-chart uploads; saved practice plans and persistent user accounts are not implemented.
 
 ## What’s included
 
 - A responsive dashboard with daily practice sections for scales, songs, and lessons
 - A song chart gallery with a grid and image-preview modals
+- An administrator login modal for protected song-chart uploads
 - A dark-themed interface built with Thymeleaf and Bootstrap
 - A Spring Boot application configured for Java 21
 
@@ -73,6 +74,8 @@ src/
 `src/main/resources/data.json` contains `Songs` and `Lessons` arrays and a `Scales` object. Each song has a `name`, a `links` array of URLs, and an optional `chartImage` path. Use the Song Charts grid's upload form to add a PNG, JPG, JPEG, or GIF chart image to a song. Uploaded images are stored in `uploads/song-charts` by default and served from the gallery; change `practice-pal.upload-dir` to choose another storage directory. Upload size is limited to 10 MB. The gallery opens a chart image in a modal, and songs without a chart show a placeholder. Each lesson has a `name` and a `links` array of URLs; links for the selected daily song and lesson appear in their dashboard panels. The song list, lesson list, and scale entries each rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Each scale key maps to an object containing a `relativeMinor` label and `backingTrackUrl`.
 
 The application name is set in `src/main/resources/application.properties`. Spring Boot uses its standard configuration conventions, so additional settings can be supplied with environment variables or command-line properties.
+
+The default administrator login is `admin` / `password`. Configure `SPRING_SECURITY_USER_NAME` and `SPRING_SECURITY_USER_PASSWORD` to set different credentials; change the default password before exposing the app outside a trusted local environment. The account is kept in memory and has to be configured again after each restart.
 
 H2 and PostgreSQL are included as runtime dependencies. Database connection settings and application data persistence are not configured yet.
 
