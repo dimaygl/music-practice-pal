@@ -80,13 +80,17 @@
   }
 
   function chordNotes(chord) {
-    const match = chord.textContent.trim().match(/^([A-G](?:#|b)?)(m|7)?$/);
+    const match = chord.textContent.trim().match(/^([A-G](?:#|b)?)(m7b5|m7|m|7|dim)?$/);
     if (!match || pitchClasses[match[1]] === undefined) {
       throw new Error(`Unsupported chord: ${chord.textContent.trim()}`);
     }
 
     const root = pitchClasses[match[1]];
-    const intervals = match[2] === "m" ? [0, 3, 7] : match[2] === "7" ? [0, 4, 7, 10] : [0, 4, 7];
+    const intervals = match[2] === "m" ? [0, 3, 7]
+      : match[2] === "m7" ? [0, 3, 7, 10]
+        : match[2] === "m7b5" ? [0, 3, 6, 10]
+          : match[2] === "dim" ? [0, 3, 6]
+            : match[2] === "7" ? [0, 4, 7, 10] : [0, 4, 7];
     return [root + 48, ...intervals.map((interval) => root + 60 + interval)];
   }
 

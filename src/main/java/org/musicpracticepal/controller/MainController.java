@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,8 +27,6 @@ import tools.jackson.databind.ObjectMapper;
 @Controller
 public class MainController {
 
-    record RelativeMinor(String relativeMinor, String backingTrackUrl) {}
-
     record Song(String name, String chartImage) {
         Song {
             name = name.trim();
@@ -50,18 +46,30 @@ public class MainController {
 
     record ScaleOption(String key, String label) {}
 
-    private record ChordDegree(int semitones, boolean minor, boolean dominantSeventh) {
+    private record ChordDegree(
+            int semitones, boolean minor, boolean dominantSeventh, boolean diminished) {
         ChordDegree(int semitones, boolean minor) {
-            this(semitones, minor, false);
+            this(semitones, minor, false, false);
+        }
+
+        ChordDegree(int semitones, boolean minor, boolean dominantSeventh) {
+            this(semitones, minor, dominantSeventh, false);
         }
     }
 
     private record ProgressionDefinition(String id, String label, List<ChordDegree> degrees) {}
 
-    private record PracticeData(
-            List<Song> songs, List<Lesson> lessons, LinkedHashMap<String, RelativeMinor> scales) {}
+    private record PracticeData(List<Song> songs, List<Lesson> lessons) {}
 
     private static final LocalDate ROTATION_START = LocalDate.of(1970, 1, 5);
+    private static final List<String> MAJOR_SCALES = List.of(
+            "A", "A#", "B", "B#", "C", "C#", "D", "D#", "E", "E#", "F", "F#", "G", "G#");
+    private static final List<String> MINOR_SCALES = List.of(
+            "F# minor", "G minor", "G# minor", "A minor", "A# minor", "B minor",
+            "C minor", "C# minor", "D minor", "D# minor", "E minor", "F minor");
+    private static final List<String> SCALES = java.util.stream.Stream
+            .concat(MAJOR_SCALES.stream(), MINOR_SCALES.stream())
+            .toList();
     private static final List<ProgressionDefinition> PROGRESSION_DEFINITIONS = List.of(
             new ProgressionDefinition("pop", "Pop (I–V–vi–IV)", List.of(
                     new ChordDegree(0, false), new ChordDegree(7, false),
@@ -91,8 +99,6 @@ public class MainController {
 
     private final List<Song> songs;
     private final List<Lesson> lessons;
-    private final List<String> scales;
-    private final Map<String, RelativeMinor> relativeMinors;
     private final SongService songService;
 
     @Autowired
@@ -104,13 +110,12 @@ public class MainController {
     }
 
     private MainController(PracticeData data, SongService songService) {
-        this(data.songs(), data.lessons(), data.scales(), songService);
+        this(data.songs(), data.lessons(), songService);
     }
 
     MainController(
             List<Song> songs,
             List<Lesson> lessons,
-            Map<String, RelativeMinor> relativeMinors,
             SongService songService) {
         this.songs = songs.stream()
                 .filter(song -> !song.name().isBlank())
@@ -124,12 +129,7 @@ public class MainController {
         if (this.lessons.isEmpty()) {
             throw new IllegalStateException("The data JSON must contain at least one lesson");
         }
-        this.relativeMinors = Collections.unmodifiableMap(new LinkedHashMap<>(relativeMinors));
         this.songService = songService;
-        this.scales = List.copyOf(this.relativeMinors.keySet());
-        if (this.scales.isEmpty()) {
-            throw new IllegalStateException("The data JSON must contain at least one scale");
-        }
     }
 
     @GetMapping("/")
@@ -138,9 +138,7 @@ public class MainController {
         String scale = scaleFor(today);
         model.addAttribute("currentScaleKey", scale);
         model.addAttribute("scaleToPractice", scaleDisplay(scale));
-        model.addAttribute("scaleOptions", scales.stream()
-                .map(key -> new ScaleOption(key, scaleDisplay(key)))
-                .toList());
+        model.addAttribute("scaleOptions", scaleOptions());
         List<ProgressionOption> progressionOptions = progressionOptionsFor(scale);
         model.addAttribute("progressionOptions", progressionOptions);
         model.addAttribute("chordProgression",
@@ -162,34 +160,71 @@ public class MainController {
                         definition.id(),
                         definition.label(),
                         chordSequenceFor(definition, scale),
-                        scales.stream()
+                        SCALES.stream()
                                 .map(key -> chordSequenceFor(definition, key))
                                 .collect(Collectors.joining(";"))))
                 .toList();
     }
 
     private String chordSequenceFor(ProgressionDefinition definition, String scale) {
-        int root = switch (scale) {
+        boolean minorScale = scale.endsWith(" minor");
+        String rootName = minorScale ? scale.substring(0, scale.length() - " minor".length()) : scale;
+        int root = switch (rootName) {
             case "A" -> 9;
             case "A#" -> 10;
+            case "Bb" -> 10;
             case "B" -> 11;
             case "B#", "C" -> 0;
             case "C#" -> 1;
+            case "Db" -> 1;
             case "D" -> 2;
             case "D#" -> 3;
+            case "Eb" -> 3;
             case "E" -> 4;
             case "E#" -> 5;
             case "F" -> 5;
             case "F#" -> 6;
+            case "Gb" -> 6;
             case "G" -> 7;
             case "G#" -> 8;
+            case "Ab" -> 8;
             default -> throw new IllegalArgumentException("Unsupported scale: " + scale);
         };
         String[] noteNames = {"C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
-        return definition.degrees().stream()
+        List<ChordDegree> degrees = minorScale ? minorDegreesFor(definition) : definition.degrees();
+        return degrees.stream()
                 .map(degree -> noteNames[(root + degree.semitones()) % noteNames.length]
-                        + (degree.minor() ? "m" : degree.dominantSeventh() ? "7" : ""))
+                        + (degree.diminished() ? "dim" : degree.minor() && degree.dominantSeventh() ? "m7"
+                        : degree.minor() ? "m" : degree.dominantSeventh() ? "7" : ""))
                 .collect(Collectors.joining("|"));
+    }
+
+    private List<ChordDegree> minorDegreesFor(ProgressionDefinition definition) {
+        return switch (definition.id()) {
+            case "pop", "minor-pop" -> List.of(
+                    new ChordDegree(0, true), new ChordDegree(8, false),
+                    new ChordDegree(3, false), new ChordDegree(10, false));
+            case "doo-wop" -> List.of(
+                    new ChordDegree(0, true), new ChordDegree(8, false),
+                    new ChordDegree(5, true), new ChordDegree(7, false));
+            case "folk-rock" -> List.of(
+                    new ChordDegree(0, true), new ChordDegree(5, true),
+                    new ChordDegree(10, false), new ChordDegree(0, true));
+            case "classic-rock" -> List.of(
+                    new ChordDegree(0, true), new ChordDegree(10, false),
+                    new ChordDegree(8, false), new ChordDegree(7, false));
+            case "jazz-turnaround" -> List.of(
+                    new ChordDegree(2, true, false, true), new ChordDegree(7, false, true),
+                    new ChordDegree(0, true), new ChordDegree(8, false));
+            case "blues" -> List.of(
+                    new ChordDegree(0, true, true), new ChordDegree(0, true, true),
+                    new ChordDegree(0, true, true), new ChordDegree(0, true, true),
+                    new ChordDegree(5, true, true), new ChordDegree(5, true, true),
+                    new ChordDegree(0, true, true), new ChordDegree(0, true, true),
+                    new ChordDegree(7, false, true), new ChordDegree(5, true, true),
+                    new ChordDegree(0, true, true), new ChordDegree(0, true, true));
+            default -> throw new IllegalArgumentException("Unsupported progression: " + definition.id());
+        };
     }
 
     @PostMapping("/songs/{index}/links")
@@ -254,8 +289,53 @@ public class MainController {
     }
 
     String scaleDisplay(String scale) {
-        RelativeMinor relativeMinor = relativeMinors.get(scale);
-        return relativeMinor == null ? scale : scale + " (" + relativeMinor.relativeMinor() + ")";
+        if (MINOR_SCALES.contains(scale)) {
+            return scale + " (" + relativeMajorFor(scale) + " major)";
+        }
+        String relativeMinor = relativeMinorFor(scale);
+        return relativeMinor == null ? scale : scale + " (" + relativeMinor + ")";
+    }
+
+    private List<ScaleOption> scaleOptions() {
+        return SCALES.stream()
+                .map(scale -> new ScaleOption(scale, scaleDisplay(scale)))
+                .toList();
+    }
+
+    private static String relativeMinorFor(String major) {
+        return switch (major) {
+            case "A" -> "F# minor";
+            case "A#" -> "G minor";
+            case "B" -> "G# minor";
+            case "B#", "C" -> "A minor";
+            case "C#" -> "A# minor";
+            case "D" -> "B minor";
+            case "D#" -> "C minor";
+            case "E" -> "C# minor";
+            case "E#", "F" -> "D minor";
+            case "F#" -> "D# minor";
+            case "G" -> "E minor";
+            case "G#" -> "F minor";
+            default -> null;
+        };
+    }
+
+    private static String relativeMajorFor(String minor) {
+        return switch (minor) {
+            case "F# minor" -> "A";
+            case "G minor" -> "A#";
+            case "G# minor" -> "B";
+            case "A minor" -> "C";
+            case "A# minor" -> "C#";
+            case "B minor" -> "D";
+            case "C minor" -> "D#";
+            case "C# minor" -> "E";
+            case "D minor" -> "F";
+            case "D# minor" -> "F#";
+            case "E minor" -> "G";
+            case "F minor" -> "G#";
+            default -> throw new IllegalArgumentException("Unsupported minor scale: " + minor);
+        };
     }
 
     private static PracticeData loadPracticeData(Resource resource, ObjectMapper objectMapper) {
@@ -269,17 +349,7 @@ public class MainController {
                 throw new IllegalStateException("The data JSON must contain at least one lesson");
             }
             List<Lesson> lessons = objectMapper.convertValue(data.get("Lessons"), new TypeReference<>() {});
-            Object scaleData = data.get("Scales");
-            if (scaleData == null) {
-                throw new IllegalStateException("The data JSON must contain at least one scale");
-            }
-            LinkedHashMap<String, RelativeMinor> scales = objectMapper.convertValue(
-                    scaleData, new TypeReference<>() {
-                    });
-            if (scales.isEmpty()) {
-                throw new IllegalStateException("The data JSON must contain at least one scale");
-            }
-            return new PracticeData(songs, lessons, scales);
+            return new PracticeData(songs, lessons);
         } catch (IOException e) {
             throw new IllegalStateException(
                     "Failed to load practice data from " + resource.getDescription(), e);
@@ -319,6 +389,6 @@ public class MainController {
 
     String scaleFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
-        return scales.get(Math.floorMod(daysSinceStart, scales.size()));
+        return MAJOR_SCALES.get(Math.floorMod(daysSinceStart, MAJOR_SCALES.size()));
     }
 }

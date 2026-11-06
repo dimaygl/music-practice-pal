@@ -16,49 +16,5 @@
         "https://justinjohnsonguitar.com/programs/backporch-blues-bootcamp?utm_source=product&utm_medium=share&utm_campaign=content_share&utm_term=3584842&utm_content=copy"
       ]
     }
-  ],
-  "Scales": {
-    "A": {
-      "relativeMinor": "F# minor"
-    },
-    "A#": {
-      "relativeMinor": "G minor"
-    },
-    "B": {
-      "relativeMinor": "G# minor"
-    },
-    "B#": {
-      "relativeMinor": "A minor"
-    },
-    "C": {
-      "relativeMinor": "A minor"
-    },
-    "C#": {
-      "relativeMinor": "A# minor"
-    },
-    "D": {
-      "relativeMinor": "B minor"
-    },
-    "D#": {
-      "relativeMinor": "C minor"
-    },
-    "E": {
-      "relativeMinor": "C# minor"
-    },
-    "E#": {
-      "relativeMinor": "D minor"
-    },
-    "F": {
-      "relativeMinor": "D minor"
-    },
-    "F#": {
-      "relativeMinor": "D# minor"
-    },
-    "G": {
-      "relativeMinor": "E minor"
-    },
-    "G#": {
-      "relativeMinor": "F minor"
-    }
-  }
+  ]
 }

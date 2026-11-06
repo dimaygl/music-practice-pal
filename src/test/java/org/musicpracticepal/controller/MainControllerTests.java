@@ -10,9 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,9 +29,6 @@ class MainControllerTests {
 
     @Test
     void songsRotateDailyInConfiguredOrder() {
-        Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
-        scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
-
         MainController controller = new MainController(
                 List.of(
                         new MainController.Song("Song One", null),
@@ -41,7 +36,6 @@ class MainControllerTests {
                 List.of(
                         new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")),
                         new MainController.Lesson("Lesson Two", List.of("https://example.com/lesson-two"))),
-                scales,
                 mock(SongService.class));
         LocalDate rotationStart = LocalDate.of(1970, 1, 5);
 
@@ -55,8 +49,6 @@ class MainControllerTests {
 
     @Test
     void homeModelIncludesLinksForSelectedSong() {
-        Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
-        scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
         List<MainController.Song> songs = List.of(
                 new MainController.Song("Song One", null),
                 new MainController.Song("Song Two", null));
@@ -65,28 +57,31 @@ class MainControllerTests {
         SongService songService = mock(SongService.class);
         when(songService.findBySongName(anyString())).thenReturn(List.of("https://example.com/song-link"));
         MainController controller = new MainController(
-                songs, lessons, scales, songService);
+                songs, lessons, songService);
         ExtendedModelMap model = new ExtendedModelMap();
 
         controller.home(model);
 
         MainController.Song selectedSong = controller.songFor(LocalDate.now());
+        String selectedScale = controller.scaleFor(LocalDate.now());
         assertEquals(selectedSong.name(), model.get("songToPractice"));
-        assertEquals(List.of("A", "E", "F#m", "D"), model.get("chordProgression"));
         @SuppressWarnings("unchecked")
         List<MainController.ProgressionOption> progressionOptions =
                 (List<MainController.ProgressionOption>) model.get("progressionOptions");
+        assertEquals(selectedScale, model.get("currentScaleKey"));
+        assertEquals(List.of(progressionOptions.getFirst().chordSequence().split("\\|")),
+                model.get("chordProgression"));
         assertEquals(7, progressionOptions.size());
-        assertEquals("A|F#m|D|E", progressionOptions.get(1).chordSequence());
-        assertEquals("Bm|E|A|F#m", progressionOptions.get(5).chordSequence());
+        assertEquals("A|F#m|D|E", progressionOptions.get(1).chordSequencesByScale().split(";")[0]);
+        assertEquals("Em|A|D|Bm", progressionOptions.get(5).chordSequencesByScale().split(";")[6]);
         assertEquals("A7|A7|A7|A7|D7|D7|A7|A7|E7|D7|A7|A7",
-                progressionOptions.get(6).chordSequence());
-        assertEquals("A|E|F#m|D", progressionOptions.get(0).chordSequencesByScale());
+                progressionOptions.get(6).chordSequencesByScale().split(";")[0]);
         @SuppressWarnings("unchecked")
         List<MainController.ScaleOption> scaleOptions =
                 (List<MainController.ScaleOption>) model.get("scaleOptions");
-        assertEquals(1, scaleOptions.size());
-        assertEquals("A", model.get("currentScaleKey"));
+        assertEquals(26, scaleOptions.size());
+        assertEquals("F# minor (A major)", scaleOptions.get(14).label());
+        assertEquals("F#m|D|A|E", progressionOptions.get(0).chordSequencesByScale().split(";")[14]);
         assertEquals(List.of("https://example.com/song-link"), model.get("songLinks"));
         MainController.Lesson selectedLesson = controller.lessonFor(LocalDate.now());
         assertEquals(selectedLesson.name(), model.get("lessonToPractice"));
@@ -95,15 +90,12 @@ class MainControllerTests {
 
     @Test
     void songChartsModelIncludesAllSongs() {
-        Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
-        scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
         List<MainController.Song> songs = List.of(
                 new MainController.Song("Song One", null),
                 new MainController.Song("Song Two", "/song-charts/song-two.jpg"));
         MainController controller = new MainController(
                 songs,
                 List.of(new MainController.Lesson("Lesson One", List.of())),
-                scales,
                 mock(SongService.class));
         ExtendedModelMap model = new ExtendedModelMap();
 
@@ -118,14 +110,11 @@ class MainControllerTests {
 
     @Test
     void uploadingChartMakesItAvailableInTheGallery() throws IOException {
-        Map<String, MainController.RelativeMinor> scales = new LinkedHashMap<>();
-        scales.put("A", new MainController.RelativeMinor("F# minor", "track-a"));
         SongService songService = new SongService(
                 mock(SongRepository.class), uploadDirectory.toString());
         MainController controller = new MainController(
                 List.of(new MainController.Song("Song One", null)),
                 List.of(new MainController.Lesson("Lesson One", List.of())),
-                scales,
                 songService);
         ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", imageBytes);

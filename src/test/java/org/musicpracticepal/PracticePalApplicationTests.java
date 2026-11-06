@@ -46,6 +46,8 @@ class PracticePalApplicationTests {
                 .andExpect(content().string(containsString("Jazz turnaround")))
                 .andExpect(content().string(containsString("12-bar Blues")))
                 .andExpect(content().string(containsString("id=\"scale-type\"")))
+                .andExpect(content().string(containsString("F# minor (A major)")))
+                .andExpect(content().string(containsString("G minor (A# major)")))
                 .andExpect(content().string(containsString("progression-tempo")))
                 .andExpect(content().string(containsString("/js/chord-progression.js")))
                 .andExpect(content().string(containsString("Log in to Practice Pal")))
