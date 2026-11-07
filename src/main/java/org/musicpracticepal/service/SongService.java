@@ -86,6 +86,7 @@ public class SongService {
         Song song = songRepository.findById(songId)
                 .orElseThrow(() -> new IllegalArgumentException("Song not found: " + songId));
         song.setSongChart(imageData);
+        song.setSongChartContentType(contentTypeFor(extension));
         songRepository.save(song);
     }
 
@@ -96,7 +97,7 @@ public class SongService {
         if (song.getSongChart() == null) {
             return null;
         }
-        return new ChartImage(song.getSongChart());
+        return new ChartImage(song.getSongChart(), song.getSongChartContentType());
     }
 
     private static String contentTypeFor(String extension) {
@@ -125,5 +126,5 @@ public class SongService {
         }
     }
 
-    public record ChartImage(byte[] data) {}
+    public record ChartImage(byte[] data, String contentType) {}
 }

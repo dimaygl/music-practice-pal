@@ -230,29 +230,11 @@ public class MainController {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND);
             }
             return ResponseEntity.ok()
-                    .contentType(imageMediaType(image.data()))
+                    .contentType(MediaType.parseMediaType(image.contentType()))
                     .body(image.data());
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Song not found", e);
         }
-    }
-
-    private static MediaType imageMediaType(byte[] image) {
-        if (image.length >= 8
-                && image[0] == (byte) 0x89 && image[1] == 'P' && image[2] == 'N' && image[3] == 'G'
-                && image[4] == 0x0d && image[5] == 0x0a && image[6] == 0x1a && image[7] == 0x0a) {
-            return MediaType.IMAGE_PNG;
-        }
-        if (image.length >= 3
-                && image[0] == (byte) 0xff && image[1] == (byte) 0xd8 && image[2] == (byte) 0xff) {
-            return MediaType.IMAGE_JPEG;
-        }
-        if (image.length >= 6
-                && image[0] == 'G' && image[1] == 'I' && image[2] == 'F'
-                && image[3] == '8' && (image[4] == '7' || image[4] == '9') && image[5] == 'a') {
-            return MediaType.IMAGE_GIF;
-        }
-        throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported chart image");
     }
 
     private List<Song> songs() {

@@ -32,6 +32,10 @@ public class Song {
     private byte[] songChart;
 
     @Setter
+    @Column(name = "song_chart_content_type", length = 32)
+    private String songChartContentType;
+
+    @Setter
     @Column(nullable = false)
     private int position;
 
