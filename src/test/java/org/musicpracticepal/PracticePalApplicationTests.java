@@ -122,8 +122,7 @@ class PracticePalApplicationTests {
                 .andExpect(redirectedUrl("/song-charts"));
 
         Song persistedSong = songRepository.findById(song.getId()).orElseThrow();
-        assertArrayEquals(imageBytes, persistedSong.getChartImageData());
-        assertEquals("image/png", persistedSong.getChartImageContentType());
+        assertArrayEquals(imageBytes, persistedSong.getSongChart());
         mockMvc.perform(get("/songs/" + song.getId() + "/chart-image"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("image/png"))

@@ -72,7 +72,7 @@ src/
 
 ## Configuration
 
-`src/main/resources/data.sql` seeds the initial songs, lesson, and lesson link when records are missing; it runs after Hibernate creates or updates the JPA schema. The catalog is loaded from the database for the dashboard and Songs page. Administrators can add/remove songs and add HTTP(S) links for a song from its dashboard card; those links are also stored in the database. The last song cannot be removed. The song and lesson lists, as well as scale entries, rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Scale and chord progression details are defined in the application code.
+`src/main/resources/schema.sql` renames an existing `practice_song` table to `song` on startup, preserving its rows. `src/main/resources/data.sql` seeds the initial song and lesson when records are missing; it runs after Hibernate creates or updates the JPA schema. The catalog is loaded from the database for the dashboard and Songs page. Administrators can add/remove songs and add HTTP(S) links for a song from its dashboard card; those links are also stored in the database. The last song cannot be removed. The song and lesson lists, as well as scale entries, rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Scale and chord progression details are defined in the application code.
 
 Use the Songs page grid's upload form to add a PNG, JPG, JPEG, or GIF chart image to a song. Chart images are stored in the selected database and served from the gallery. Upload size is limited to 10 MB. The gallery opens a chart image in a modal, and songs without a chart show a placeholder.
 

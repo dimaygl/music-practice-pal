@@ -14,8 +14,8 @@ import org.hibernate.type.SqlTypes;
 
 @Getter
 @Entity
-@Table(name = "practice_song", uniqueConstraints = {
-        @UniqueConstraint(name = "uq_practice_song_name", columnNames = "name")
+@Table(name = "song", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_song_name", columnNames = "name")
 })
 public class Song {
 
@@ -26,12 +26,10 @@ public class Song {
     @Column(nullable = false, length = 255)
     private String name;
 
+    @Setter
     @JdbcTypeCode(SqlTypes.VARBINARY)
-    @Column(name = "chart_image_data", length = 10 * 1024 * 1024)
-    private byte[] chartImageData;
-
-    @Column(name = "chart_image_content_type", length = 32)
-    private String chartImageContentType;
+    @Column(name = "song_chart", length = 10 * 1024 * 1024)
+    private byte[] songChart;
 
     @Setter
     @Column(nullable = false)
@@ -42,11 +40,6 @@ public class Song {
     public Song(String name, int position) {
         this.name = name;
         this.position = position;
-    }
-
-    public void setChartImageData(byte[] chartImageData, String contentType) {
-        this.chartImageData = chartImageData;
-        this.chartImageContentType = contentType;
     }
 
 }

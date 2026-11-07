@@ -56,7 +56,7 @@ public class SongService {
             return null;
         }
         Song song = songs.get(songIndex);
-        if (song.getChartImageData() != null) {
+        if (song.getSongChart() != null) {
             return DATABASE_IMAGE_PATH.formatted(song.getId());
         }
         return null;
@@ -85,7 +85,7 @@ public class SongService {
         imageData = upload.getBytes();
         Song song = songRepository.findById(songId)
                 .orElseThrow(() -> new IllegalArgumentException("Song not found: " + songId));
-        song.setChartImageData(imageData, contentTypeFor(extension));
+        song.setSongChart(imageData);
         songRepository.save(song);
     }
 
@@ -93,10 +93,10 @@ public class SongService {
     public ChartImage chartImage(Long songId) {
         Song song = songRepository.findById(songId)
                 .orElseThrow(() -> new IllegalArgumentException("Song not found: " + songId));
-        if (song.getChartImageData() == null) {
+        if (song.getSongChart() == null) {
             return null;
         }
-        return new ChartImage(song.getChartImageData(), song.getChartImageContentType());
+        return new ChartImage(song.getSongChart());
     }
 
     private static String contentTypeFor(String extension) {
@@ -125,5 +125,5 @@ public class SongService {
         }
     }
 
-    public record ChartImage(byte[] data, String contentType) {}
+    public record ChartImage(byte[] data) {}
 }
