@@ -163,12 +163,25 @@
                 <div class="card-body p-4 p-md-5 text-center">
                   <h2 class="card-title h2 fw-bold mb-3" id="lesson-heading">Lesson to practice</h2>
                   <p class="h5 text-primary mb-0" th:text="${lessonToPractice}">Open chord transitions</p>
-                  <ul class="list-unstyled mt-3 mb-0" th:if="${!#lists.isEmpty(lessonLinks)}">
-                    <li th:each="lessonLink : ${lessonLinks}" class="mb-2">
-                      <a th:href="${lessonLink}" th:text="${lessonLink}"
-                         target="_blank" rel="noopener noreferrer"></a>
-                    </li>
-                  </ul>
+                  <p class="mt-3 mb-0" th:if="${lessonLink != null and !#strings.isEmpty(lessonLink)}">
+                    <a th:href="${lessonLink}" th:text="${lessonLink}"
+                       target="_blank" rel="noopener noreferrer"></a>
+                  </p>
+                  <div class="alert alert-success mt-3 mb-0" role="status"
+                       th:if="${lessonLinkSuccess != null}" th:text="${lessonLinkSuccess}"></div>
+                  <div class="alert alert-danger mt-3 mb-0" role="alert"
+                       th:if="${lessonLinkError != null}" th:text="${lessonLinkError}"></div>
+                  <form class="mt-4 text-start" method="post"
+                        sec:authorize="hasRole('ADMIN')"
+                        th:action="@{/lessons/{id}/link(id=${lessonId})}">
+                    <label class="form-label" for="lesson-link-url">Update lesson link</label>
+                    <div class="input-group">
+                      <input class="form-control" id="lesson-link-url" name="url" type="url"
+                             maxlength="2048" placeholder="https://example.com/lesson"
+                             th:value="${lessonLink}">
+                      <button class="btn btn-outline-primary" type="submit">Save link</button>
+                    </div>
+                  </form>
                 </div>
               </div>
             </section>

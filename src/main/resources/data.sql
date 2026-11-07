@@ -4,10 +4,10 @@ WHERE NOT EXISTS (
     SELECT 1 FROM song WHERE name = 'song-1'
 );
 
-INSERT INTO practice_lesson (name, position)
+INSERT INTO lesson (name, position)
 SELECT 'lesson-1', 0
 WHERE NOT EXISTS (
     SELECT 1
-    FROM practice_lesson
+    FROM lesson
     WHERE name = 'lesson-1'
 );

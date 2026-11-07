@@ -3,6 +3,7 @@ package org.musicpracticepal;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,7 +65,7 @@ class PracticePalApplicationTests {
                 .toList());
         assertEquals(1, lessonRepository.findAllByOrderByPositionAsc().size());
         assertEquals("lesson-1", lessonRepository.findAllByOrderByPositionAsc().getFirst().getName());
-        assertEquals(List.of(), lessonRepository.findAllByOrderByPositionAsc().getFirst().getLinks());
+        assertNull(lessonRepository.findAllByOrderByPositionAsc().getFirst().getLinkUrl());
     }
 
     @Test
@@ -191,6 +192,40 @@ class PracticePalApplicationTests {
         mockMvc.perform(get("/").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(linkUrl)));
+    }
+
+    @Test
+    void adminCanUpdateSingleLessonLink() throws Exception {
+        org.musicpracticepal.model.Lesson lesson = lessonRepository.findAllByOrderByPositionAsc().getFirst();
+        String linkUrl = "https://example.com/lesson";
+
+        mockMvc.perform(post("/lessons/" + lesson.getId() + "/link")
+                        .param("url", linkUrl)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/?loginRequired"));
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("username", "admin")
+                        .param("password", "password")
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+
+        mockMvc.perform(post("/lessons/" + lesson.getId() + "/link")
+                        .param("url", linkUrl)
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/"));
+
+        assertEquals(linkUrl, lessonRepository.findById(lesson.getId()).orElseThrow().getLinkUrl());
+        mockMvc.perform(post("/lessons/" + lesson.getId() + "/link")
+                        .param("url", "")
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/"));
+        assertNull(lessonRepository.findById(lesson.getId()).orElseThrow().getLinkUrl());
     }
 
     @Test

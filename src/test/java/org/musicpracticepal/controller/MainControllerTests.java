@@ -30,8 +30,8 @@ class MainControllerTests {
                         new MainController.Song("Song One"),
                         new MainController.Song("Song Two")),
                 List.of(
-                        new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")),
-                        new MainController.Lesson("Lesson Two", List.of("https://example.com/lesson-two"))),
+                        new MainController.Lesson("Lesson One", "https://example.com/lesson-one"),
+                        new MainController.Lesson("Lesson Two", "https://example.com/lesson-two")),
                 mock(SongService.class));
         LocalDate rotationStart = LocalDate.of(1970, 1, 5);
 
@@ -39,8 +39,8 @@ class MainControllerTests {
         assertEquals("Song Two", controller.songFor(rotationStart.plusDays(1)).name());
         assertEquals("Song One", controller.songFor(rotationStart.plusDays(2)).name());
         assertEquals("Lesson One", controller.lessonFor(rotationStart).name());
-        assertEquals(List.of("https://example.com/lesson-two"),
-                controller.lessonFor(rotationStart.plusDays(1)).links());
+        assertEquals("https://example.com/lesson-two",
+                controller.lessonFor(rotationStart.plusDays(1)).linkUrl());
     }
 
     @Test
@@ -49,7 +49,7 @@ class MainControllerTests {
                 new MainController.Song("Song One"),
                 new MainController.Song("Song Two"));
         List<MainController.Lesson> lessons = List.of(
-                new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")));
+                new MainController.Lesson("Lesson One", "https://example.com/lesson-one"));
         SongService songService = mock(SongService.class);
         when(songService.findBySongName(anyString())).thenReturn(List.of("https://example.com/song-link"));
         MainController controller = new MainController(
@@ -81,7 +81,7 @@ class MainControllerTests {
         assertEquals(List.of("https://example.com/song-link"), model.get("songLinks"));
         MainController.Lesson selectedLesson = controller.lessonFor(LocalDate.now());
         assertEquals(selectedLesson.name(), model.get("lessonToPractice"));
-        assertEquals(selectedLesson.links(), model.get("lessonLinks"));
+        assertEquals(selectedLesson.linkUrl(), model.get("lessonLink"));
     }
 
     @Test
@@ -91,7 +91,7 @@ class MainControllerTests {
                 new MainController.Song("Song Two"));
         MainController controller = new MainController(
                 songs,
-                List.of(new MainController.Lesson("Lesson One", List.of())),
+                List.of(new MainController.Lesson("Lesson One", null)),
                 mock(SongService.class));
         ExtendedModelMap model = new ExtendedModelMap();
 
@@ -110,7 +110,7 @@ class MainControllerTests {
         when(songService.chartImageUrl(0)).thenReturn("/songs/1/chart-image");
         MainController controller = new MainController(
                 List.of(new MainController.Song(1L, "Song One")),
-                List.of(new MainController.Lesson("Lesson One", List.of())),
+                List.of(new MainController.Lesson("Lesson One", null)),
                 songService);
         ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
         ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", imageBytes);

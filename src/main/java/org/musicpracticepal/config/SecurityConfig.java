@@ -26,6 +26,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/song-charts/*/upload").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/songs", "/songs/*/remove").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/songs/*/links").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/lessons/*/link").hasRole("ADMIN")
                 .anyRequest().permitAll());
         http.formLogin(form -> form
                 .loginPage("/")

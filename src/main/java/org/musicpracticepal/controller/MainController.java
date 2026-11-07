@@ -37,10 +37,13 @@ public class MainController {
         }
     }
 
-    record Lesson(String name, List<String> links) {
+    record Lesson(Long id, String name, String linkUrl) {
+        Lesson(String name, String linkUrl) {
+            this(null, name, linkUrl);
+        }
+
         Lesson {
             name = name.trim();
-            links = List.copyOf(links);
         }
     }
 
@@ -112,7 +115,8 @@ public class MainController {
         model.addAttribute("songLinks", songService.findBySongName(song.name()));
         Lesson lesson = lessonFor(today);
         model.addAttribute("lessonToPractice", lesson.name());
-        model.addAttribute("lessonLinks", lesson.links());
+        model.addAttribute("lessonId", lesson.id());
+        model.addAttribute("lessonLink", lesson.linkUrl());
         return "index";
     }
 
@@ -136,7 +140,7 @@ public class MainController {
         }
 
         String normalizedUrl = url.trim();
-        if (!isValidSongLink(normalizedUrl)) {
+        if (!isValidHttpUrl(normalizedUrl)) {
             redirectAttributes.addFlashAttribute(
                     "linkError", "Enter a valid HTTP or HTTPS link.");
             return "redirect:/";
@@ -148,6 +152,30 @@ public class MainController {
         } else {
             redirectAttributes.addFlashAttribute("linkError", "That link has already been added.");
         }
+        return "redirect:/";
+    }
+
+    @PostMapping("/lessons/{id}/link")
+    public String updateLessonLink(
+            @PathVariable Long id,
+            @RequestParam("url") String url,
+            RedirectAttributes redirectAttributes) {
+        var lesson = lessonRepository.findById(id).orElse(null);
+        if (lesson == null) {
+            redirectAttributes.addFlashAttribute("lessonLinkError", "That lesson could not be found.");
+            return "redirect:/";
+        }
+
+        String normalizedUrl = url.trim();
+        if (!normalizedUrl.isEmpty() && !isValidHttpUrl(normalizedUrl)) {
+            redirectAttributes.addFlashAttribute(
+                    "lessonLinkError", "Enter a valid HTTP or HTTPS link.");
+            return "redirect:/";
+        }
+
+        lesson.setLinkUrl(normalizedUrl.isEmpty() ? null : normalizedUrl);
+        lessonRepository.save(lesson);
+        redirectAttributes.addFlashAttribute("lessonLinkSuccess", "Lesson link updated.");
         return "redirect:/";
     }
 
@@ -255,7 +283,7 @@ public class MainController {
             return configuredLessons;
         }
         List<Lesson> lessons = lessonRepository.findAllByOrderByPositionAsc().stream()
-                .map(lesson -> new Lesson(lesson.getName(), lesson.getLinks()))
+                .map(lesson -> new Lesson(lesson.getId(), lesson.getName(), lesson.getLinkUrl()))
                 .toList();
         if (lessons.isEmpty()) {
             throw new IllegalStateException("No lessons are configured in the database");
@@ -280,7 +308,7 @@ public class MainController {
         return Math.floorMod(daysSinceStart, songs().size());
     }
 
-    private static boolean isValidSongLink(String url) {
+    private static boolean isValidHttpUrl(String url) {
         if (url.isBlank() || url.length() > 2048) {
             return false;
         }
