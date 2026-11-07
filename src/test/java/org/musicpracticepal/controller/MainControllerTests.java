@@ -71,17 +71,17 @@ class MainControllerTests {
         assertEquals(selectedScale, model.get("currentScaleKey"));
         assertEquals(List.of(progressionOptions.getFirst().chordSequence().split("\\|")),
                 model.get("chordProgression"));
-        assertEquals(7, progressionOptions.size());
-        assertEquals("A|F#m|D|E", progressionOptions.get(1).chordSequencesByScale().split(";")[0]);
-        assertEquals("Em|A|D|Bm", progressionOptions.get(5).chordSequencesByScale().split(";")[6]);
-        assertEquals("A7|A7|A7|A7|D7|D7|A7|A7|E7|D7|A7|A7",
-                progressionOptions.get(6).chordSequencesByScale().split(";")[0]);
+        assertEquals(11, progressionOptions.size());
+        assertEquals(ProgressionCatalog.chordSequence(ProgressionCatalog.progression("pop"), selectedScale),
+                progressionOptions.getFirst().chordSequence());
+        assertEquals("Pop (I–V–vi–IV)", progressionOptions.getFirst().label());
+        assertEquals(ProgressionCatalog.PROGRESSION_DATA_JSON, model.get("progressionData"));
         @SuppressWarnings("unchecked")
         List<MainController.ScaleOption> scaleOptions =
                 (List<MainController.ScaleOption>) model.get("scaleOptions");
-        assertEquals(26, scaleOptions.size());
-        assertEquals("F# minor (A major)", scaleOptions.get(14).label());
-        assertEquals("F#m|D|A|E", progressionOptions.get(0).chordSequencesByScale().split(";")[14]);
+        assertEquals(24, scaleOptions.size());
+        assertEquals("C (A minor)", scaleOptions.getFirst().label());
+        assertEquals("F# minor (A major)", scaleOptions.get(21).label());
         assertEquals(List.of("https://example.com/song-link"), model.get("songLinks"));
         MainController.Lesson selectedLesson = controller.lessonFor(LocalDate.now());
         assertEquals(selectedLesson.name(), model.get("lessonToPractice"));

@@ -76,14 +76,13 @@
                   </select>
                   <p class="h5 text-primary mb-3" id="scale-display"
                      th:text="${scaleToPractice}">A</p>
-                  <div class="mb-3" id="chord-progression">
+                  <div class="mb-3" id="chord-progression"
+                       th:data-progressions="${progressionData}">
                     <label class="form-label mb-2" for="progression-type">Progression</label>
                     <select class="form-select mx-auto mb-3" id="progression-type"
                             aria-label="Chord progression type" style="max-width: 24rem">
                       <option th:each="option : ${progressionOptions}"
                               th:value="${option.id}" th:text="${option.label}"
-                              th:data-chords="${option.chordSequence}"
-                              th:data-chords-by-scale="${option.chordSequencesByScale}"
                               th:selected="${optionStat.first}">Pop (I–V–vi–IV)</option>
                     </select>
                     <ul class="list-inline mb-0">

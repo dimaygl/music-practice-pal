@@ -6,7 +6,6 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.musicpracticepal.service.SongService;
@@ -42,60 +41,16 @@ public class MainController {
 
     record SongCard(int index, String name, String chartImage) {}
 
-    record ProgressionOption(String id, String label, String chordSequence, String chordSequencesByScale) {}
+    record ProgressionOption(String id, String label, String chordSequence) {}
 
     record ScaleOption(String key, String label) {}
-
-    private record ChordDegree(
-            int semitones, boolean minor, boolean dominantSeventh, boolean diminished) {
-        ChordDegree(int semitones, boolean minor) {
-            this(semitones, minor, false, false);
-        }
-
-        ChordDegree(int semitones, boolean minor, boolean dominantSeventh) {
-            this(semitones, minor, dominantSeventh, false);
-        }
-    }
-
-    private record ProgressionDefinition(String id, String label, List<ChordDegree> degrees) {}
 
     private record PracticeData(List<Song> songs, List<Lesson> lessons) {}
 
     private static final LocalDate ROTATION_START = LocalDate.of(1970, 1, 5);
-    private static final List<String> MAJOR_SCALES = List.of(
-            "A", "A#", "B", "B#", "C", "C#", "D", "D#", "E", "E#", "F", "F#", "G", "G#");
-    private static final List<String> MINOR_SCALES = List.of(
-            "F# minor", "G minor", "G# minor", "A minor", "A# minor", "B minor",
-            "C minor", "C# minor", "D minor", "D# minor", "E minor", "F minor");
-    private static final List<String> SCALES = java.util.stream.Stream
-            .concat(MAJOR_SCALES.stream(), MINOR_SCALES.stream())
+    private static final List<ScaleOption> SCALE_OPTIONS = ProgressionCatalog.KEYS.stream()
+            .map(key -> new ScaleOption(key, ProgressionCatalog.displayName(key)))
             .toList();
-    private static final List<ProgressionDefinition> PROGRESSION_DEFINITIONS = List.of(
-            new ProgressionDefinition("pop", "Pop (I–V–vi–IV)", List.of(
-                    new ChordDegree(0, false), new ChordDegree(7, false),
-                    new ChordDegree(9, true), new ChordDegree(5, false))),
-            new ProgressionDefinition("doo-wop", "50s / Doo-wop (I–vi–IV–V)", List.of(
-                    new ChordDegree(0, false), new ChordDegree(9, true),
-                    new ChordDegree(5, false), new ChordDegree(7, false))),
-            new ProgressionDefinition("minor-pop", "Pop / Rock (vi–IV–I–V)", List.of(
-                    new ChordDegree(9, true), new ChordDegree(5, false),
-                    new ChordDegree(0, false), new ChordDegree(7, false))),
-            new ProgressionDefinition("folk-rock", "Folk / Rock (I–IV–V–I)", List.of(
-                    new ChordDegree(0, false), new ChordDegree(5, false),
-                    new ChordDegree(7, false), new ChordDegree(0, false))),
-            new ProgressionDefinition("classic-rock", "Classic Rock (I–V–IV–I)", List.of(
-                    new ChordDegree(0, false), new ChordDegree(7, false),
-                    new ChordDegree(5, false), new ChordDegree(0, false))),
-            new ProgressionDefinition("jazz-turnaround", "Jazz turnaround (ii–V–I–vi)", List.of(
-                    new ChordDegree(2, true), new ChordDegree(7, false),
-                    new ChordDegree(0, false), new ChordDegree(9, true))),
-            new ProgressionDefinition("blues", "12-bar Blues (I7–IV7–V7)", List.of(
-                    new ChordDegree(0, false, true), new ChordDegree(0, false, true),
-                    new ChordDegree(0, false, true), new ChordDegree(0, false, true),
-                    new ChordDegree(5, false, true), new ChordDegree(5, false, true),
-                    new ChordDegree(0, false, true), new ChordDegree(0, false, true),
-                    new ChordDegree(7, false, true), new ChordDegree(5, false, true),
-                    new ChordDegree(0, false, true), new ChordDegree(0, false, true))));
 
     private final List<Song> songs;
     private final List<Lesson> lessons;
@@ -137,10 +92,11 @@ public class MainController {
         LocalDate today = LocalDate.now();
         String scale = scaleFor(today);
         model.addAttribute("currentScaleKey", scale);
-        model.addAttribute("scaleToPractice", scaleDisplay(scale));
-        model.addAttribute("scaleOptions", scaleOptions());
+        model.addAttribute("scaleToPractice", ProgressionCatalog.displayName(scale));
+        model.addAttribute("scaleOptions", SCALE_OPTIONS);
         List<ProgressionOption> progressionOptions = progressionOptionsFor(scale);
         model.addAttribute("progressionOptions", progressionOptions);
+        model.addAttribute("progressionData", ProgressionCatalog.PROGRESSION_DATA_JSON);
         model.addAttribute("chordProgression",
                 List.of(progressionOptions.getFirst().chordSequence().split("\\|")));
         int songIndex = songIndexFor(today);
@@ -154,77 +110,13 @@ public class MainController {
         return "index";
     }
 
-    private List<ProgressionOption> progressionOptionsFor(String scale) {
-        return PROGRESSION_DEFINITIONS.stream()
-                .map(definition -> new ProgressionOption(
-                        definition.id(),
-                        definition.label(),
-                        chordSequenceFor(definition, scale),
-                        SCALES.stream()
-                                .map(key -> chordSequenceFor(definition, key))
-                                .collect(Collectors.joining(";"))))
+    private static List<ProgressionOption> progressionOptionsFor(String scale) {
+        return ProgressionCatalog.PROGRESSIONS.stream()
+                .map(progression -> new ProgressionOption(
+                        progression.id(),
+                        progression.label(scale),
+                        ProgressionCatalog.chordSequence(progression, scale)))
                 .toList();
-    }
-
-    private String chordSequenceFor(ProgressionDefinition definition, String scale) {
-        boolean minorScale = scale.endsWith(" minor");
-        String rootName = minorScale ? scale.substring(0, scale.length() - " minor".length()) : scale;
-        int root = switch (rootName) {
-            case "A" -> 9;
-            case "A#" -> 10;
-            case "Bb" -> 10;
-            case "B" -> 11;
-            case "B#", "C" -> 0;
-            case "C#" -> 1;
-            case "Db" -> 1;
-            case "D" -> 2;
-            case "D#" -> 3;
-            case "Eb" -> 3;
-            case "E" -> 4;
-            case "E#" -> 5;
-            case "F" -> 5;
-            case "F#" -> 6;
-            case "Gb" -> 6;
-            case "G" -> 7;
-            case "G#" -> 8;
-            case "Ab" -> 8;
-            default -> throw new IllegalArgumentException("Unsupported scale: " + scale);
-        };
-        String[] noteNames = {"C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
-        List<ChordDegree> degrees = minorScale ? minorDegreesFor(definition) : definition.degrees();
-        return degrees.stream()
-                .map(degree -> noteNames[(root + degree.semitones()) % noteNames.length]
-                        + (degree.diminished() ? "dim" : degree.minor() && degree.dominantSeventh() ? "m7"
-                        : degree.minor() ? "m" : degree.dominantSeventh() ? "7" : ""))
-                .collect(Collectors.joining("|"));
-    }
-
-    private List<ChordDegree> minorDegreesFor(ProgressionDefinition definition) {
-        return switch (definition.id()) {
-            case "pop", "minor-pop" -> List.of(
-                    new ChordDegree(0, true), new ChordDegree(8, false),
-                    new ChordDegree(3, false), new ChordDegree(10, false));
-            case "doo-wop" -> List.of(
-                    new ChordDegree(0, true), new ChordDegree(8, false),
-                    new ChordDegree(5, true), new ChordDegree(7, false));
-            case "folk-rock" -> List.of(
-                    new ChordDegree(0, true), new ChordDegree(5, true),
-                    new ChordDegree(10, false), new ChordDegree(0, true));
-            case "classic-rock" -> List.of(
-                    new ChordDegree(0, true), new ChordDegree(10, false),
-                    new ChordDegree(8, false), new ChordDegree(7, false));
-            case "jazz-turnaround" -> List.of(
-                    new ChordDegree(2, true, false, true), new ChordDegree(7, false, true),
-                    new ChordDegree(0, true), new ChordDegree(8, false));
-            case "blues" -> List.of(
-                    new ChordDegree(0, true, true), new ChordDegree(0, true, true),
-                    new ChordDegree(0, true, true), new ChordDegree(0, true, true),
-                    new ChordDegree(5, true, true), new ChordDegree(5, true, true),
-                    new ChordDegree(0, true, true), new ChordDegree(0, true, true),
-                    new ChordDegree(7, false, true), new ChordDegree(5, true, true),
-                    new ChordDegree(0, true, true), new ChordDegree(0, true, true));
-            default -> throw new IllegalArgumentException("Unsupported progression: " + definition.id());
-        };
     }
 
     @PostMapping("/songs/{index}/links")
@@ -288,56 +180,6 @@ public class MainController {
         return "redirect:/song-charts";
     }
 
-    String scaleDisplay(String scale) {
-        if (MINOR_SCALES.contains(scale)) {
-            return scale + " (" + relativeMajorFor(scale) + " major)";
-        }
-        String relativeMinor = relativeMinorFor(scale);
-        return relativeMinor == null ? scale : scale + " (" + relativeMinor + ")";
-    }
-
-    private List<ScaleOption> scaleOptions() {
-        return SCALES.stream()
-                .map(scale -> new ScaleOption(scale, scaleDisplay(scale)))
-                .toList();
-    }
-
-    private static String relativeMinorFor(String major) {
-        return switch (major) {
-            case "A" -> "F# minor";
-            case "A#" -> "G minor";
-            case "B" -> "G# minor";
-            case "B#", "C" -> "A minor";
-            case "C#" -> "A# minor";
-            case "D" -> "B minor";
-            case "D#" -> "C minor";
-            case "E" -> "C# minor";
-            case "E#", "F" -> "D minor";
-            case "F#" -> "D# minor";
-            case "G" -> "E minor";
-            case "G#" -> "F minor";
-            default -> null;
-        };
-    }
-
-    private static String relativeMajorFor(String minor) {
-        return switch (minor) {
-            case "F# minor" -> "A";
-            case "G minor" -> "A#";
-            case "G# minor" -> "B";
-            case "A minor" -> "C";
-            case "A# minor" -> "C#";
-            case "B minor" -> "D";
-            case "C minor" -> "D#";
-            case "C# minor" -> "E";
-            case "D minor" -> "F";
-            case "D# minor" -> "F#";
-            case "E minor" -> "G";
-            case "F minor" -> "G#";
-            default -> throw new IllegalArgumentException("Unsupported minor scale: " + minor);
-        };
-    }
-
     private static PracticeData loadPracticeData(Resource resource, ObjectMapper objectMapper) {
         try (InputStream input = resource.getInputStream()) {
             Map<String, Object> data = objectMapper.readValue(input, new TypeReference<>() {});
@@ -389,6 +231,7 @@ public class MainController {
 
     String scaleFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
-        return MAJOR_SCALES.get(Math.floorMod(daysSinceStart, MAJOR_SCALES.size()));
+        return ProgressionCatalog.MAJOR_KEYS.get(
+                Math.floorMod(daysSinceStart, ProgressionCatalog.MAJOR_KEYS.size()));
     }
 }
