@@ -9,4 +9,6 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
 
     List<Lesson> findAllByOrderByPositionAsc();
 
+    boolean existsByNameIgnoreCase(String name);
+
 }

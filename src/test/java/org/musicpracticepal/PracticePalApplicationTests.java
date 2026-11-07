@@ -229,6 +229,57 @@ class PracticePalApplicationTests {
     }
 
     @Test
+    void adminCanAddAndRemoveLessonsAndAnonymousCannot() throws Exception {
+        String lessonName = "Temporary Lesson";
+        mockMvc.perform(get("/lessons"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Daily Tasks")))
+                .andExpect(content().string(containsString("Songs")))
+                .andExpect(content().string(containsString("Lessons")));
+
+        mockMvc.perform(post("/lessons")
+                        .param("name", lessonName)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/?loginRequired"));
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("username", "admin")
+                        .param("password", "password")
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+
+        mockMvc.perform(post("/lessons")
+                        .param("name", "  " + lessonName + "  ")
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/lessons"));
+
+        org.musicpracticepal.model.Lesson addedLesson =
+                lessonRepository.findAllByOrderByPositionAsc().stream()
+                        .filter(lesson -> lesson.getName().equals(lessonName))
+                        .findFirst()
+                        .orElseThrow();
+        mockMvc.perform(get("/lessons").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(lessonName)));
+
+        mockMvc.perform(post("/lessons/" + addedLesson.getId() + "/remove")
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/lessons"));
+
+        assertTrue(lessonRepository.findById(addedLesson.getId()).isEmpty());
+        List<org.musicpracticepal.model.Lesson> remainingLessons =
+                lessonRepository.findAllByOrderByPositionAsc();
+        for (int position = 0; position < remainingLessons.size(); position++) {
+            assertEquals(position, remainingLessons.get(position).getPosition());
+        }
+    }
+
+    @Test
     void adminCanAddAndRemoveSongsAndAnonymousCannot() throws Exception {
         mockMvc.perform(post("/songs")
                         .param("name", "Temporary Song")

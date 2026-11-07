@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lessons | Practice Pal</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%B8%3C/text%3E%3C/svg%3E"
+    >
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    >
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+  </head>
+  <body class="d-flex min-vh-100 flex-column bg-body text-body">
+    <header>
+      <nav class="navbar bg-body border-bottom border-secondary-subtle py-3" aria-label="Main navigation">
+        <div class="container d-flex justify-content-between align-items-center">
+          <a class="navbar-brand d-flex align-items-center gap-3 me-0" th:href="@{/}">
+            <span class="d-inline-flex align-items-center justify-content-center" aria-hidden="true">
+              <span class="fs-1 lh-1">🎸</span>
+            </span>
+            <span class="d-flex flex-column lh-sm">
+              <strong class="fs-5 text-body">Music Practice Pal</strong>
+              <small class="text-body-secondary fw-normal mt-1">Your pal for daily guitar practice</small>
+            </span>
+          </a>
+          <button class="btn btn-primary" type="button" data-bs-toggle="modal"
+                  data-bs-target="#login-modal" sec:authorize="isAnonymous()">Log in</button>
+          <div class="d-flex align-items-center gap-3" sec:authorize="isAuthenticated()">
+            <span class="text-body-secondary" sec:authentication="name"></span>
+            <form method="post" th:action="@{/logout}">
+              <button class="btn btn-outline-secondary" type="submit">Log out</button>
+            </form>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container flex-grow-1 py-4 py-md-5">
+      <div class="row g-4">
+        <aside class="col-12 col-lg-3" aria-label="Practice menu">
+          <nav class="card bg-body-tertiary border border-secondary-subtle" aria-label="Practice sections">
+            <div class="card-body">
+              <h2 class="h6 text-uppercase text-body-secondary mb-3">Menu</h2>
+              <ul class="nav nav-pills flex-column gap-2">
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">Daily Tasks</a></li>
+                <li class="nav-item"><a class="nav-link" th:href="@{/song-charts}">Songs</a></li>
+                <li class="nav-item">
+                  <a class="nav-link active" aria-current="page" th:href="@{/lessons}">Lessons</a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </aside>
+
+        <section class="col-12 col-lg-9" aria-labelledby="lessons-heading">
+          <h1 class="h2 fw-bold mb-4" id="lessons-heading">Lessons</h1>
+          <div class="alert alert-success" role="status" th:if="${lessonSuccess != null}"
+               th:text="${lessonSuccess}"></div>
+          <div class="alert alert-danger" role="alert" th:if="${lessonError != null}"
+               th:text="${lessonError}"></div>
+          <div class="row g-4">
+            <div class="col-12 col-sm-6 col-xl-4" th:each="lesson : ${lessons}">
+              <article class="card h-100 bg-body-tertiary border border-secondary-subtle shadow-sm">
+                <div class="card-body d-flex flex-column text-center">
+                  <h2 class="h5 card-title mb-3" th:text="${lesson.name}">Lesson title</h2>
+                  <a class="mb-3 text-break"
+                     th:if="${lesson.linkUrl != null and !#strings.isEmpty(lesson.linkUrl)}"
+                     th:href="${lesson.linkUrl}" th:text="${lesson.linkUrl}"
+                     target="_blank" rel="noopener noreferrer"></a>
+                  <p class="text-body-secondary mb-3"
+                     th:unless="${lesson.linkUrl != null and !#strings.isEmpty(lesson.linkUrl)}">
+                    No lesson link added
+                  </p>
+                  <form class="mt-auto" method="post" sec:authorize="hasRole('ADMIN')"
+                        th:action="@{/lessons/{id}/remove(id=${lesson.id})}"
+                        onsubmit="return confirm('Remove this lesson?')">
+                    <button class="btn btn-outline-danger btn-sm w-100" type="submit"
+                            th:disabled="${lessonCount <= 1}">Remove lesson</button>
+                  </form>
+                </div>
+              </article>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-4" sec:authorize="hasRole('ADMIN')">
+              <button class="card add-song-card h-100 w-100 bg-body-tertiary border border-secondary-subtle shadow-sm"
+                      type="button" data-bs-toggle="modal" data-bs-target="#add-lesson-modal"
+                      aria-label="Add a lesson">
+                <span class="add-song-plus" aria-hidden="true">+</span>
+                <span class="h5 mb-0">Add a lesson</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="modal fade" id="add-lesson-modal" tabindex="-1"
+         aria-labelledby="add-lesson-title" aria-hidden="true" sec:authorize="hasRole('ADMIN')">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-body-tertiary">
+          <form method="post" th:action="@{/lessons}">
+            <div class="modal-header">
+              <h2 class="modal-title fs-5" id="add-lesson-title">Add a lesson</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <label class="form-label" for="lesson-name">Lesson name</label>
+              <input class="form-control" id="lesson-name" name="name" type="text"
+                     maxlength="255" required autofocus>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-primary" type="submit">Add lesson</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-auto border-top border-secondary-subtle bg-body py-4 text-center text-body-secondary">
+      <div class="container">
+        <small>&copy; Music Practice Pal , Written by Dima Yaglin</small>
+      </div>
+    </footer>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <div th:replace="~{fragments/auth :: loginModal}"></div>
+  </body>
+</html>

@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.musicpracticepal.repository.LessonRepository;
 import org.musicpracticepal.repository.SongRepository;
+import org.musicpracticepal.service.LessonCatalogService;
 import org.musicpracticepal.service.SongCatalogService;
 import org.musicpracticepal.service.SongService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +50,8 @@ public class MainController {
 
     record SongCard(int index, Long id, String name, String chartImage) {}
 
+    record LessonCard(Long id, String name, String linkUrl) {}
+
     record ProgressionOption(String id, String label, String chordSequence) {}
 
     record ScaleOption(String key, String label) {}
@@ -62,19 +65,22 @@ public class MainController {
     private final LessonRepository lessonRepository;
     private final SongService songService;
     private final SongCatalogService songCatalogService;
+    private final LessonCatalogService lessonCatalogService;
 
     @Autowired
     public MainController(
             SongRepository songRepository,
             LessonRepository lessonRepository,
             SongService songService,
-            SongCatalogService songCatalogService) {
+            SongCatalogService songCatalogService,
+            LessonCatalogService lessonCatalogService) {
         this.songRepository = songRepository;
         this.lessonRepository = lessonRepository;
         this.configuredSongs = null;
         this.configuredLessons = null;
         this.songService = songService;
         this.songCatalogService = songCatalogService;
+        this.lessonCatalogService = lessonCatalogService;
     }
 
     MainController(
@@ -91,6 +97,7 @@ public class MainController {
         this.lessonRepository = null;
         this.songService = songService;
         this.songCatalogService = null;
+        this.lessonCatalogService = null;
     }
 
     private final List<Song> configuredSongs;
@@ -194,6 +201,16 @@ public class MainController {
         return "song-charts";
     }
 
+    @GetMapping("/lessons")
+    public String lessonsPage(Model model) {
+        List<Lesson> lessons = lessons();
+        model.addAttribute("lessons", lessons.stream()
+                .map(lesson -> new LessonCard(lesson.id(), lesson.name(), lesson.linkUrl()))
+                .toList());
+        model.addAttribute("lessonCount", lessons.size());
+        return "lessons";
+    }
+
     @PostMapping("/songs")
     public String addSong(
             @RequestParam("name") String name,
@@ -227,6 +244,37 @@ public class MainController {
             redirectAttributes.addFlashAttribute("songError", "The last song cannot be removed.");
         }
         return "redirect:/song-charts";
+    }
+
+    @PostMapping("/lessons")
+    public String addLesson(
+            @RequestParam("name") String name,
+            RedirectAttributes redirectAttributes) {
+        String normalizedName = name.trim();
+        if (normalizedName.isEmpty() || normalizedName.length() > 255) {
+            redirectAttributes.addFlashAttribute(
+                    "lessonError", "Enter a lesson name of no more than 255 characters.");
+        } else if (lessonCatalogService.addLesson(normalizedName)) {
+            redirectAttributes.addFlashAttribute("lessonSuccess", "Lesson added.");
+        } else {
+            redirectAttributes.addFlashAttribute("lessonError", "That lesson is already in the list.");
+        }
+        return "redirect:/lessons";
+    }
+
+    @PostMapping("/lessons/{id}/remove")
+    public String removeLesson(
+            @PathVariable Long id,
+            RedirectAttributes redirectAttributes) {
+        try {
+            lessonCatalogService.removeLesson(id);
+            redirectAttributes.addFlashAttribute("lessonSuccess", "Lesson removed.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("lessonError", "That lesson could not be found.");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("lessonError", "The last lesson cannot be removed.");
+        }
+        return "redirect:/lessons";
     }
 
     @PostMapping("/song-charts/{index}/upload")

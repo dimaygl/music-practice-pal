@@ -12,7 +12,7 @@ Practice Pal is a Spring Boot web application for keeping guitar practice focuse
 - A song chart gallery with a grid and image-preview modals
 - An administrator login modal for protected song-chart uploads
 - Persistent songs, lessons, and song links stored through Spring Data JPA
-- Administrator controls to add/remove songs, manage song links, and update a lesson's single optional link
+- Administrator controls to add/remove songs and lessons, manage song links, and update a lesson's single optional link
 - A dark-themed interface built with Thymeleaf and Bootstrap
 - A Spring Boot application configured for Java 21
 
@@ -74,7 +74,7 @@ src/
 
 ## Configuration
 
-`src/main/resources/schema.sql` renames an existing `practice_song` table to `song` on startup, preserving its rows. `src/main/resources/data.sql` seeds the initial song and lesson when records are missing; it runs after Hibernate creates or updates the JPA schema. Each lesson has one optional HTTP(S) link stored directly on the lesson row; administrators can update or clear it from the dashboard. Existing links are migrated from `lesson_link` to the lesson row (keeping the first link), then the old table is removed. Administrators can add/remove songs and add HTTP(S) links for a song from its dashboard card. The last song cannot be removed. The song and lesson lists, as well as scale entries, rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Scale and chord progression details are defined in the application code.
+`src/main/resources/schema.sql` renames an existing `practice_song` table to `song` on startup, preserving its rows. `src/main/resources/data.sql` seeds the initial song and lesson when records are missing; it runs after Hibernate creates or updates the JPA schema. The Lessons page lists lessons and lets administrators add or remove them; the last lesson cannot be removed. Each lesson has one optional HTTP(S) link stored directly on its row; administrators can update or clear it from the dashboard. Existing links are migrated from `lesson_link` to the lesson row (keeping the first link), then the old table is removed. Administrators can also add/remove songs and add HTTP(S) links for a song from its dashboard card; the last song cannot be removed. The song and lesson lists, as well as scale entries, rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Scale and chord progression details are defined in the application code.
 
 Use the Songs page grid's upload form to add a PNG, JPG, JPEG, or GIF chart image to a song. Chart images are stored in the selected database and served from the gallery. Upload size is limited to 10 MB. The gallery opens a chart image in a modal, and songs without a chart show a placeholder.
 
