@@ -1,17 +1,15 @@
 package org.musicpracticepal.controller;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.IntStream;
 
+import org.musicpracticepal.repository.LessonRepository;
+import org.musicpracticepal.repository.SongRepository;
 import org.musicpracticepal.service.SongService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,8 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 @Controller
 public class MainController {
@@ -45,47 +41,44 @@ public class MainController {
 
     record ScaleOption(String key, String label) {}
 
-    private record PracticeData(List<Song> songs, List<Lesson> lessons) {}
-
     private static final LocalDate ROTATION_START = LocalDate.of(1970, 1, 5);
     private static final List<ScaleOption> SCALE_OPTIONS = ProgressionCatalog.KEYS.stream()
             .map(key -> new ScaleOption(key, ProgressionCatalog.displayName(key)))
             .toList();
 
-    private final List<Song> songs;
-    private final List<Lesson> lessons;
+    private final SongRepository songRepository;
+    private final LessonRepository lessonRepository;
     private final SongService songService;
 
     @Autowired
     public MainController(
-            @Value("classpath:data.json") Resource dataFile,
-            ObjectMapper objectMapper,
+            SongRepository songRepository,
+            LessonRepository lessonRepository,
             SongService songService) {
-        this(loadPracticeData(dataFile, objectMapper), songService);
-    }
-
-    private MainController(PracticeData data, SongService songService) {
-        this(data.songs(), data.lessons(), songService);
+        this.songRepository = songRepository;
+        this.lessonRepository = lessonRepository;
+        this.configuredSongs = null;
+        this.configuredLessons = null;
+        this.songService = songService;
     }
 
     MainController(
             List<Song> songs,
             List<Lesson> lessons,
             SongService songService) {
-        this.songs = songs.stream()
+        this.configuredSongs = songs.stream()
                 .filter(song -> !song.name().isBlank())
                 .toList();
-        if (this.songs.isEmpty()) {
-            throw new IllegalStateException("The data JSON must contain at least one song");
-        }
-        this.lessons = lessons.stream()
+        this.configuredLessons = lessons.stream()
                 .filter(lesson -> !lesson.name().isBlank())
                 .toList();
-        if (this.lessons.isEmpty()) {
-            throw new IllegalStateException("The data JSON must contain at least one lesson");
-        }
+        this.songRepository = null;
+        this.lessonRepository = null;
         this.songService = songService;
     }
+
+    private final List<Song> configuredSongs;
+    private final List<Lesson> configuredLessons;
 
     @GetMapping("/")
     public String home(Model model) {
@@ -100,7 +93,7 @@ public class MainController {
         model.addAttribute("chordProgression",
                 List.of(progressionOptions.getFirst().chordSequence().split("\\|")));
         int songIndex = songIndexFor(today);
-        Song song = songs.get(songIndex);
+        Song song = songs().get(songIndex);
         model.addAttribute("songToPractice", song.name());
         model.addAttribute("songIndex", songIndex);
         model.addAttribute("songLinks", songService.findBySongName(song.name()));
@@ -124,7 +117,7 @@ public class MainController {
             @PathVariable int index,
             @RequestParam("url") String url,
             RedirectAttributes redirectAttributes) {
-        if (index < 0 || index >= songs.size()) {
+        if (index < 0 || index >= songs().size()) {
             redirectAttributes.addFlashAttribute("linkError", "That song could not be found.");
             return "redirect:/";
         }
@@ -136,7 +129,7 @@ public class MainController {
             return "redirect:/";
         }
 
-        Song song = songs.get(index);
+        Song song = songs().get(index);
         if (songService.addLink(song.name(), normalizedUrl)) {
             redirectAttributes.addFlashAttribute("linkSuccess", "Link added for " + song.name() + ".");
         } else {
@@ -147,6 +140,7 @@ public class MainController {
 
     @GetMapping("/song-charts")
     public String songCharts(Model model) {
+        List<Song> songs = songs();
         List<SongCard> songCards = IntStream.range(0, songs.size())
                 .mapToObj(index -> {
                     Song song = songs.get(index);
@@ -164,14 +158,14 @@ public class MainController {
             @PathVariable int index,
             @RequestParam("chart") MultipartFile upload,
             RedirectAttributes redirectAttributes) {
-        if (index < 0 || index >= songs.size()) {
+        if (index < 0 || index >= songs().size()) {
             redirectAttributes.addFlashAttribute("uploadError", "That song could not be found.");
             return "redirect:/song-charts";
         }
         try {
             songService.storeChart(index, upload);
             redirectAttributes.addFlashAttribute(
-                    "uploadSuccess", "Chart uploaded for " + songs.get(index).name() + ".");
+                    "uploadSuccess", "Chart uploaded for " + songs().get(index).name() + ".");
         } catch (SongService.InvalidChartImageException e) {
             redirectAttributes.addFlashAttribute("uploadError", e.getMessage());
         } catch (IOException e) {
@@ -180,37 +174,47 @@ public class MainController {
         return "redirect:/song-charts";
     }
 
-    private static PracticeData loadPracticeData(Resource resource, ObjectMapper objectMapper) {
-        try (InputStream input = resource.getInputStream()) {
-            Map<String, Object> data = objectMapper.readValue(input, new TypeReference<>() {});
-            if (data.get("Songs") == null) {
-                throw new IllegalStateException("The data JSON must contain at least one song");
-            }
-            List<Song> songs = objectMapper.convertValue(data.get("Songs"), new TypeReference<>() {});
-            if (data.get("Lessons") == null) {
-                throw new IllegalStateException("The data JSON must contain at least one lesson");
-            }
-            List<Lesson> lessons = objectMapper.convertValue(data.get("Lessons"), new TypeReference<>() {});
-            return new PracticeData(songs, lessons);
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Failed to load practice data from " + resource.getDescription(), e);
+    private List<Song> songs() {
+        if (configuredSongs != null) {
+            return configuredSongs;
         }
+        List<Song> songs = songRepository.findAllByOrderByPositionAsc().stream()
+                .map(song -> new Song(song.getName(), song.getChartImage()))
+                .toList();
+        if (songs.isEmpty()) {
+            throw new IllegalStateException("No songs are configured in the database");
+        }
+        return songs;
+    }
+
+    private List<Lesson> lessons() {
+        if (configuredLessons != null) {
+            return configuredLessons;
+        }
+        List<Lesson> lessons = lessonRepository.findAllByOrderByPositionAsc().stream()
+                .map(lesson -> new Lesson(lesson.getName(), lesson.getLinks()))
+                .toList();
+        if (lessons.isEmpty()) {
+            throw new IllegalStateException("No lessons are configured in the database");
+        }
+        return lessons;
     }
 
     Song songFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
+        List<Song> songs = songs();
         return songs.get(Math.floorMod(daysSinceStart, songs.size()));
     }
 
     Lesson lessonFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
+        List<Lesson> lessons = lessons();
         return lessons.get(Math.floorMod(daysSinceStart, lessons.size()));
     }
 
     int songIndexFor(LocalDate date) {
         long daysSinceStart = date.toEpochDay() - ROTATION_START.toEpochDay();
-        return Math.floorMod(daysSinceStart, songs.size());
+        return Math.floorMod(daysSinceStart, songs().size());
     }
 
     private static boolean isValidSongLink(String url) {

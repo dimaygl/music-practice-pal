@@ -7,12 +7,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import lombok.Getter;
 
-@Getter
 @Entity
-@Table(name = "song", uniqueConstraints = {
-        @UniqueConstraint(name = "uq_song_links_song_name_url", columnNames = {"song_name", "link_url"})
+@Table(name = "practice_song", uniqueConstraints = {
+        @UniqueConstraint(name = "uq_practice_song_name", columnNames = "name")
 })
 public class Song {
 
@@ -20,17 +18,36 @@ public class Song {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "song_name", nullable = false, length = 255)
-    private String songName;
+    @Column(nullable = false, length = 255)
+    private String name;
 
-    @Column(name = "link_url", nullable = false, length = 2048)
-    private String linkUrl;
+    @Column(name = "chart_image", length = 2048)
+    private String chartImage;
+
+    @Column(nullable = false)
+    private int position;
 
     protected Song() {}
 
-    public Song(String songName, String linkUrl) {
-        this.songName = songName;
-        this.linkUrl = linkUrl;
+    public Song(String name, String chartImage, int position) {
+        this.name = name;
+        this.chartImage = chartImage;
+        this.position = position;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getChartImage() {
+        return chartImage;
+    }
+
+    public int getPosition() {
+        return position;
+    }
 }

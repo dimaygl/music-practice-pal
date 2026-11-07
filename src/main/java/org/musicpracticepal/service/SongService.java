@@ -11,7 +11,9 @@ import java.util.Locale;
 import javax.imageio.ImageIO;
 
 import org.musicpracticepal.model.Song;
+import org.musicpracticepal.model.SongLink;
 import org.musicpracticepal.repository.SongRepository;
+import org.musicpracticepal.repository.SongLinkRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,28 +25,33 @@ public class SongService {
     private static final List<String> IMAGE_EXTENSIONS = List.of("png", "jpg", "jpeg", "gif");
 
     private final SongRepository songRepository;
+    private final SongLinkRepository songLinkRepository;
     private final Path chartDirectory;
 
     public SongService(
             SongRepository songRepository,
+            SongLinkRepository songLinkRepository,
             @Value("${practice-pal.upload-dir:uploads/song-charts}") String chartDirectory) {
         this.songRepository = songRepository;
+        this.songLinkRepository = songLinkRepository;
         this.chartDirectory = Path.of(chartDirectory).toAbsolutePath().normalize();
     }
 
     @Transactional(readOnly = true)
     public List<String> findBySongName(String songName) {
-        return songRepository.findBySongNameOrderByIdAsc(songName).stream()
-                .map(Song::getLinkUrl)
+        return songLinkRepository.findBySong_NameOrderByIdAsc(songName).stream()
+                .map(SongLink::getLinkUrl)
                 .toList();
     }
 
     @Transactional
     public boolean addLink(String songName, String linkUrl) {
-        if (songRepository.existsBySongNameAndLinkUrl(songName, linkUrl)) {
+        if (songLinkRepository.existsBySong_NameAndLinkUrl(songName, linkUrl)) {
             return false;
         }
-        songRepository.save(new Song(songName, linkUrl));
+        Song song = songRepository.findByName(songName)
+                .orElseThrow(() -> new IllegalArgumentException("Song not found: " + songName));
+        songLinkRepository.save(new SongLink(song, linkUrl));
         return true;
     }
 

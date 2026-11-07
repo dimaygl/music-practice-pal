@@ -15,6 +15,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.musicpracticepal.repository.SongRepository;
+import org.musicpracticepal.repository.SongLinkRepository;
 import org.musicpracticepal.service.SongService;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.ui.ExtendedModelMap;
@@ -111,7 +112,9 @@ class MainControllerTests {
     @Test
     void uploadingChartMakesItAvailableInTheGallery() throws IOException {
         SongService songService = new SongService(
-                mock(SongRepository.class), uploadDirectory.toString());
+                mock(SongRepository.class),
+                mock(SongLinkRepository.class),
+                uploadDirectory.toString());
         MainController controller = new MainController(
                 List.of(new MainController.Song("Song One", null)),
                 List.of(new MainController.Lesson("Lesson One", List.of())),

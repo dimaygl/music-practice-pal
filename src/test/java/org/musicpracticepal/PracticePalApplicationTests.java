@@ -1,6 +1,7 @@
 package org.musicpracticepal;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,9 +13,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.musicpracticepal.repository.LessonRepository;
 import org.musicpracticepal.repository.SongRepository;
+import org.musicpracticepal.repository.SongLinkRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -33,8 +37,29 @@ class PracticePalApplicationTests {
     @Autowired
     private SongRepository songRepository;
 
+    @Autowired
+    private SongLinkRepository songLinkRepository;
+
+    @Autowired
+    private LessonRepository lessonRepository;
+
     @Test
     void contextLoads() {
+    }
+
+    @Test
+    void sampleSongsAndLessonsArePersistedInJpa() {
+        assertEquals(
+                List.of("Ain't No Sunshine", "Wind Cries Mary"),
+                songRepository.findAllByOrderByPositionAsc().stream()
+                        .map(song -> song.getName())
+                        .toList());
+        assertEquals(1, lessonRepository.findAllByOrderByPositionAsc().size());
+        assertEquals(
+                List.of("https://justinjohnsonguitar.com/programs/backporch-blues-bootcamp"
+                        + "?utm_source=product&utm_medium=share&utm_campaign=content_share"
+                        + "&utm_term=3584842&utm_content=copy"),
+                lessonRepository.findAllByOrderByPositionAsc().getFirst().getLinks());
     }
 
     @Test
@@ -68,7 +93,7 @@ class PracticePalApplicationTests {
     void songChartsPageOffersLoginForUploads() throws Exception {
         mockMvc.perform(get("/song-charts"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Log in to upload")))
+                .andExpect(content().string(containsString("Log in to Practice Pal")))
                 .andExpect(content().string(containsString("id=\"login-modal\"")));
     }
 
@@ -128,7 +153,7 @@ class PracticePalApplicationTests {
                 .andExpect(redirectedUrl("/"));
 
         String songName = songIndex == 0 ? "Ain't No Sunshine" : "Wind Cries Mary";
-        assertTrue(songRepository.existsBySongNameAndLinkUrl(songName, linkUrl));
+        assertTrue(songLinkRepository.existsBySong_NameAndLinkUrl(songName, linkUrl));
         mockMvc.perform(get("/").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(linkUrl)));
