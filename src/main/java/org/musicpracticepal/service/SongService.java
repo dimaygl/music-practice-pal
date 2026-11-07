@@ -106,6 +106,21 @@ public class SongService {
         }
     }
 
+    public void removeChartAndShift(int songIndex, int songCount) throws IOException {
+        for (String extension : IMAGE_EXTENSIONS) {
+            Files.deleteIfExists(chartImagePath(songIndex, extension));
+        }
+        for (int currentIndex = songIndex + 1; currentIndex < songCount; currentIndex++) {
+            for (String extension : IMAGE_EXTENSIONS) {
+                Path source = chartImagePath(currentIndex, extension);
+                if (Files.isRegularFile(source)) {
+                    Files.move(source, chartImagePath(currentIndex - 1, extension),
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
+    }
+
     private Path chartImagePath(int songIndex, String extension) {
         return chartDirectory.resolve("chart-" + songIndex + "." + extension);
     }

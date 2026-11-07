@@ -8,6 +8,7 @@ import java.util.stream.IntStream;
 
 import org.musicpracticepal.repository.LessonRepository;
 import org.musicpracticepal.repository.SongRepository;
+import org.musicpracticepal.service.SongCatalogService;
 import org.musicpracticepal.service.SongService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,7 +23,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class MainController {
 
-    record Song(String name, String chartImage) {
+    record Song(Long id, String name, String chartImage) {
+        Song(String name, String chartImage) {
+            this(null, name, chartImage);
+        }
+
         Song {
             name = name.trim();
         }
@@ -35,7 +40,7 @@ public class MainController {
         }
     }
 
-    record SongCard(int index, String name, String chartImage) {}
+    record SongCard(int index, Long id, String name, String chartImage) {}
 
     record ProgressionOption(String id, String label, String chordSequence) {}
 
@@ -49,17 +54,20 @@ public class MainController {
     private final SongRepository songRepository;
     private final LessonRepository lessonRepository;
     private final SongService songService;
+    private final SongCatalogService songCatalogService;
 
     @Autowired
     public MainController(
             SongRepository songRepository,
             LessonRepository lessonRepository,
-            SongService songService) {
+            SongService songService,
+            SongCatalogService songCatalogService) {
         this.songRepository = songRepository;
         this.lessonRepository = lessonRepository;
         this.configuredSongs = null;
         this.configuredLessons = null;
         this.songService = songService;
+        this.songCatalogService = songCatalogService;
     }
 
     MainController(
@@ -75,6 +83,7 @@ public class MainController {
         this.songRepository = null;
         this.lessonRepository = null;
         this.songService = songService;
+        this.songCatalogService = null;
     }
 
     private final List<Song> configuredSongs;
@@ -146,11 +155,55 @@ public class MainController {
                     Song song = songs.get(index);
                     String uploadedImage = songService.chartImageUrl(index);
                     String chartImage = uploadedImage == null ? song.chartImage() : uploadedImage;
-                    return new SongCard(index, song.name(), chartImage);
+                    return new SongCard(index, song.id(), song.name(), chartImage);
                 })
                 .toList();
         model.addAttribute("songs", songCards);
+        model.addAttribute("songCount", songs.size());
         return "song-charts";
+    }
+
+    @PostMapping("/songs")
+    public String addSong(
+            @RequestParam("name") String name,
+            RedirectAttributes redirectAttributes) {
+        String normalizedName = name.trim();
+        if (normalizedName.isEmpty() || normalizedName.length() > 255) {
+            redirectAttributes.addFlashAttribute(
+                    "songError", "Enter a song name of no more than 255 characters.");
+        } else if (songCatalogService.addSong(normalizedName)) {
+            redirectAttributes.addFlashAttribute("songSuccess", "Song added.");
+        } else {
+            redirectAttributes.addFlashAttribute("songError", "That song is already in the list.");
+        }
+        return "redirect:/song-charts";
+    }
+
+    @PostMapping("/songs/{id}/remove")
+    public String removeSong(
+            @PathVariable Long id,
+            RedirectAttributes redirectAttributes) {
+        List<Song> songs = songs();
+        int index = IntStream.range(0, songs.size())
+                .filter(songIndex -> id.equals(songs.get(songIndex).id()))
+                .findFirst()
+                .orElse(-1);
+        if (index < 0) {
+            redirectAttributes.addFlashAttribute("songError", "That song could not be found.");
+            return "redirect:/song-charts";
+        }
+        try {
+            songCatalogService.removeSong(id);
+            songService.removeChartAndShift(index, songs.size());
+            redirectAttributes.addFlashAttribute("songSuccess", "Song removed.");
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to update song chart files", e);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("songError", "That song could not be found.");
+        } catch (IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("songError", "The last song cannot be removed.");
+        }
+        return "redirect:/song-charts";
     }
 
     @PostMapping("/song-charts/{index}/upload")
@@ -179,7 +232,7 @@ public class MainController {
             return configuredSongs;
         }
         List<Song> songs = songRepository.findAllByOrderByPositionAsc().stream()
-                .map(song -> new Song(song.getName(), song.getChartImage()))
+                .map(song -> new Song(song.getId(), song.getName(), song.getChartImage()))
                 .toList();
         if (songs.isEmpty()) {
             throw new IllegalStateException("No songs are configured in the database");

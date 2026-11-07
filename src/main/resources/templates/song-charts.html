@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Song Charts | Practice Pal</title>
+    <title>Songs | Practice Pal</title>
     <link
       rel="icon"
       type="image/svg+xml"
@@ -54,19 +54,23 @@
                   <a class="nav-link" th:href="@{/}">Daily Tasks</a>
                 </li>
                 <li class="nav-item">
-                  <a class="nav-link active" aria-current="page" th:href="@{/song-charts}">Song Charts</a>
+                  <a class="nav-link active" aria-current="page" th:href="@{/song-charts}">Songs</a>
                 </li>
               </ul>
             </div>
           </nav>
         </aside>
 
-        <section class="col-12 col-lg-9" aria-labelledby="charts-heading">
-          <h1 class="h2 fw-bold mb-4" id="charts-heading">Song Charts</h1>
+        <section class="col-12 col-lg-9" aria-labelledby="songs-heading">
+          <h1 class="h2 fw-bold mb-4" id="songs-heading">Songs</h1>
           <div class="alert alert-success" role="status" th:if="${uploadSuccess != null}"
                th:text="${uploadSuccess}"></div>
           <div class="alert alert-danger" role="alert" th:if="${uploadError != null}"
                th:text="${uploadError}"></div>
+          <div class="alert alert-success" role="status" th:if="${songSuccess != null}"
+               th:text="${songSuccess}"></div>
+          <div class="alert alert-danger" role="alert" th:if="${songError != null}"
+               th:text="${songError}"></div>
           <div class="row g-4">
             <div class="col-12 col-sm-6 col-xl-4" th:each="song, iterStat : ${songs}">
               <article class="card h-100 bg-body-tertiary border border-secondary-subtle shadow-sm">
@@ -93,6 +97,12 @@
                            type="file" name="chart" accept="image/png,image/jpeg,image/gif"
                            th:id="|chart-file-${song.index}|" required>
                     <button class="btn btn-outline-primary btn-sm w-100" type="submit">Upload</button>
+                  </form>
+                  <form class="mt-2" method="post" sec:authorize="hasRole('ADMIN')"
+                        th:action="@{/songs/{id}/remove(id=${song.id})}"
+                        onsubmit="return confirm('Remove this song and its links?')">
+                    <button class="btn btn-outline-danger btn-sm w-100" type="submit"
+                            th:disabled="${songCount <= 1}">Remove song</button>
                   </form>
                 </div>
               </article>
@@ -124,10 +134,41 @@
                 </div>
               </div>
             </div>
+            <div class="col-12 col-sm-6 col-xl-4" sec:authorize="hasRole('ADMIN')">
+              <button class="card add-song-card h-100 w-100 bg-body-tertiary border border-secondary-subtle shadow-sm"
+                      type="button" data-bs-toggle="modal" data-bs-target="#add-song-modal"
+                      aria-label="Add a song">
+                <span class="add-song-plus" aria-hidden="true">+</span>
+                <span class="h5 mb-0">Add a song</span>
+              </button>
+            </div>
           </div>
         </section>
       </div>
     </main>
+
+    <div class="modal fade" id="add-song-modal" tabindex="-1"
+         aria-labelledby="add-song-title" aria-hidden="true" sec:authorize="hasRole('ADMIN')">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-body-tertiary">
+          <form method="post" th:action="@{/songs}">
+            <div class="modal-header">
+              <h2 class="modal-title fs-5" id="add-song-title">Add a song</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <label class="form-label" for="song-name">Song name</label>
+              <input class="form-control" id="song-name" name="name" type="text"
+                     maxlength="255" required autofocus>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-primary" type="submit">Add song</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <footer class="mt-auto border-top border-secondary-subtle bg-body py-4 text-center text-body-secondary">
       <div class="container">

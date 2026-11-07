@@ -10,4 +10,6 @@ public interface SongLinkRepository extends JpaRepository<SongLink, Long> {
     List<SongLink> findBySong_NameOrderByIdAsc(String songName);
 
     boolean existsBySong_NameAndLinkUrl(String songName, String linkUrl);
+
+    void deleteBySong_Id(Long songId);
 }

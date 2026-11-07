@@ -161,6 +161,27 @@ a {
   object-fit: contain;
 }
 
+.add-song-card {
+  min-height: 22rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--bs-body-secondary-color);
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.add-song-card:hover {
+  color: var(--bs-primary);
+  border-color: var(--bs-primary) !important;
+  background-color: rgb(10 132 255 / 5%) !important;
+}
+
+.add-song-plus {
+  font-size: 5rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
 .chart-thumbnail:not(img) {
   border-bottom: 1px solid var(--bs-border-color);
   background:

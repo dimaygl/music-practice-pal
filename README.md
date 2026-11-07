@@ -2,9 +2,9 @@
 
 **A simple home for your daily guitar practice.**
 
-Practice Pal is a Spring Boot web application for keeping guitar practice focused. Its home page brings together a daily scale, song, and lesson in one place, with a separate entry point for song charts.
+Practice Pal is a Spring Boot web application for keeping guitar practice focused. Its home page brings together a daily scale, song, and lesson in one place, with a separate Songs page for the song catalog and charts.
 
-> **Project status:** The dashboard selects a daily song, lesson, scale, and minor backing track. Songs, lessons, and song links are stored in a file-backed H2 database; an in-memory administrator account protects song-link editing and chart uploads. Saved practice plans and persistent user accounts are not implemented.
+> **Project status:** The dashboard selects a daily song, lesson, scale, and minor backing track. Songs, lessons, and song links are stored in a file-backed H2 database; an in-memory administrator account protects song catalog management, song-link editing, and chart uploads. Saved practice plans and persistent user accounts are not implemented.
 
 ## What’s included
 
@@ -12,7 +12,7 @@ Practice Pal is a Spring Boot web application for keeping guitar practice focuse
 - A song chart gallery with a grid and image-preview modals
 - An administrator login modal for protected song-chart uploads
 - Persistent songs, lessons, and song links stored through Spring Data JPA
-- An administrator form to add song links
+- Administrator controls to add/remove songs and add song links
 - A dark-themed interface built with Thymeleaf and Bootstrap
 - A Spring Boot application configured for Java 21
 
@@ -72,9 +72,9 @@ src/
 
 ## Configuration
 
-`src/main/resources/data.sql` seeds the initial songs, lesson, and lesson link when records are missing; it runs after Hibernate creates or updates the JPA schema. The catalog is loaded from the database for the dashboard and chart gallery. Administrators can add HTTP(S) links for a song from its dashboard card; those links are also stored in the database. The song and lesson lists, as well as scale entries, rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Scale and chord progression details are defined in the application code.
+`src/main/resources/data.sql` seeds the initial songs, lesson, and lesson link when records are missing; it runs after Hibernate creates or updates the JPA schema. The catalog is loaded from the database for the dashboard and Songs page. Administrators can add/remove songs and add HTTP(S) links for a song from its dashboard card; those links are also stored in the database. The last song cannot be removed. The song and lesson lists, as well as scale entries, rotate in their listed order, advancing once per calendar day from Monday, January 5, 1970, and wrapping back to the first entry. Scale and chord progression details are defined in the application code.
 
-Use the Song Charts grid's upload form to add a PNG, JPG, JPEG, or GIF chart image to a song. Uploaded images are stored in `uploads/song-charts` by default and served from the gallery; change `practice-pal.upload-dir` to choose another storage directory. Upload size is limited to 10 MB. The gallery opens a chart image in a modal, and songs without a chart show a placeholder.
+Use the Songs page grid's upload form to add a PNG, JPG, JPEG, or GIF chart image to a song. Uploaded images are stored in `uploads/song-charts` by default and served from the gallery; change `practice-pal.upload-dir` to choose another storage directory. Upload size is limited to 10 MB. The gallery opens a chart image in a modal, and songs without a chart show a placeholder.
 
 The application name and file-backed H2 connection are set in `src/main/resources/application.properties`. Database files are stored under `data/` by default and retained across restarts. Spring Boot uses its standard configuration conventions, so the datasource URL and other settings can be supplied with environment variables or command-line properties.
 

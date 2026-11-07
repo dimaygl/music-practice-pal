@@ -24,6 +24,7 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.POST, "/song-charts/*/upload").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/songs", "/songs/*/remove").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/songs/*/links").hasRole("ADMIN")
                 .anyRequest().permitAll());
         http.formLogin(form -> form

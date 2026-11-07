@@ -16,6 +16,8 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.musicpracticepal.model.Song;
+import org.musicpracticepal.model.SongLink;
 import org.musicpracticepal.repository.LessonRepository;
 import org.musicpracticepal.repository.SongRepository;
 import org.musicpracticepal.repository.SongLinkRepository;
@@ -28,7 +30,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @AutoConfigureMockMvc
-@SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:practicepal-test;DB_CLOSE_DELAY=-1")
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:practicepal-test;DB_CLOSE_DELAY=-1",
+        "music-practice-pal.upload-dir=target/test-song-charts"
+})
 class PracticePalApplicationTests {
 
     @Autowired
@@ -157,5 +162,50 @@ class PracticePalApplicationTests {
         mockMvc.perform(get("/").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(linkUrl)));
+    }
+
+    @Test
+    void adminCanAddAndRemoveSongsAndAnonymousCannot() throws Exception {
+        mockMvc.perform(post("/songs")
+                        .param("name", "Temporary Song")
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/?loginRequired"));
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("username", "admin")
+                        .param("password", "password")
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+
+        mockMvc.perform(get("/song-charts").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Add a song")))
+                .andExpect(content().string(containsString("Remove song")));
+
+        mockMvc.perform(post("/songs")
+                        .param("name", "  Temporary Song  ")
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/song-charts"));
+
+        Song addedSong = songRepository.findByName("Temporary Song").orElseThrow();
+        assertTrue(addedSong.getPosition() >= 0);
+        String linkUrl = "https://example.com/temporary-song";
+        songLinkRepository.saveAndFlush(new SongLink(addedSong, linkUrl));
+
+        mockMvc.perform(post("/songs/" + addedSong.getId() + "/remove")
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/song-charts"));
+
+        assertTrue(songRepository.findById(addedSong.getId()).isEmpty());
+        assertTrue(!songLinkRepository.existsBySong_NameAndLinkUrl("Temporary Song", linkUrl));
+        List<Song> remainingSongs = songRepository.findAllByOrderByPositionAsc();
+        for (int position = 0; position < remainingSongs.size(); position++) {
+            assertEquals(position, remainingSongs.get(position).getPosition());
+        }
     }
 }
