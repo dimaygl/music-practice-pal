@@ -10,7 +10,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
 
+@Getter
 @Entity
 @Table(name = "song_link", uniqueConstraints = {
         @UniqueConstraint(name = "uq_song_link_url", columnNames = {"song_id", "link_url"})
@@ -28,22 +30,9 @@ public class SongLink {
     @Column(name = "link_url", nullable = false, length = 2048)
     private String linkUrl;
 
-    protected SongLink() {}
-
     public SongLink(Song song, String linkUrl) {
         this.song = song;
         this.linkUrl = linkUrl;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public Song getSong() {
-        return song;
-    }
-
-    public String getLinkUrl() {
-        return linkUrl;
-    }
 }

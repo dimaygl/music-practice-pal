@@ -108,7 +108,7 @@ final class ProgressionCatalog {
                             min7(0), min7(0), dom7(7), min7(5), min7(0), dom7(7))),
             new Progression("slow-blues", Style.TRIPLET,
                     "Slow Blues 12/8 (I7–IV7–♯IV°7–V7)", List.of(
-                            dom7(0), dom7(5), dom7(0), dom7(0), dom7(5), dim7(6),
+                            dom7(0), dom7(5), dom7(0), dom7(0), dom7(5), dim7(),
                             dom7(0), dom7(0), dom7(7), dom7(5), dom7(0), dom7(7)),
                     "Slow minor Blues 12/8 (i7–iv7–♭VI7–V7)", List.of(
                             min7(0), min7(0), min7(0), min7(0), min7(5), min7(5),
@@ -120,7 +120,7 @@ final class ProgressionCatalog {
                             min7(0), dom7(7), min7(5), min7(5), min7(0), dom7(7), min7(0), dom7(7))),
             new Progression("jazz-blues", Style.SWING,
                     "Jazz Blues (I7–IV7–♯IV°7–VI7–ii7–V7)", List.of(
-                            dom7(0), dom7(5), dom7(0), dom7(0), dom7(5), dim7(6),
+                            dom7(0), dom7(5), dom7(0), dom7(0), dom7(5), dim7(),
                             dom7(0), dom7(9), min7(2), dom7(7), dom7(0), dom7(7)),
                     "Jazz minor Blues (i7–iv7–♭VI7–V7)", List.of(
                             min7(0), min7(5), min7(0), min7(0), min7(5), min7(5),
@@ -224,8 +224,8 @@ final class ProgressionCatalog {
         return new ChordDegree(semitones, Quality.MINOR_SEVENTH);
     }
 
-    private static ChordDegree dim7(int semitones) {
-        return new ChordDegree(semitones, Quality.DIMINISHED_SEVENTH);
+    private static ChordDegree dim7() {
+        return new ChordDegree(6, Quality.DIMINISHED_SEVENTH);
     }
 
     private static List<ChordDegree> twelveBarBlues(Quality tonicAndSubdominant) {

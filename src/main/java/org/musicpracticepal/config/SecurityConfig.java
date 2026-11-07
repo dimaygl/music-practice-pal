@@ -21,7 +21,7 @@ public class SecurityConfig {
     private String defaultAdminUsername;
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.POST, "/song-charts/*/upload").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/songs", "/songs/*/remove").hasRole("ADMIN")

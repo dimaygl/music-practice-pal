@@ -140,7 +140,7 @@ public class MainController {
         }
 
         String normalizedUrl = url.trim();
-        if (!isValidHttpUrl(normalizedUrl)) {
+        if (isValidHttpUrl(normalizedUrl)) {
             redirectAttributes.addFlashAttribute(
                     "linkError", "Enter a valid HTTP or HTTPS link.");
             return "redirect:/";
@@ -167,7 +167,7 @@ public class MainController {
         }
 
         String normalizedUrl = url.trim();
-        if (!normalizedUrl.isEmpty() && !isValidHttpUrl(normalizedUrl)) {
+        if (!normalizedUrl.isEmpty() && isValidHttpUrl(normalizedUrl)) {
             redirectAttributes.addFlashAttribute(
                     "lessonLinkError", "Enter a valid HTTP or HTTPS link.");
             return "redirect:/";
@@ -310,17 +310,17 @@ public class MainController {
 
     private static boolean isValidHttpUrl(String url) {
         if (url.isBlank() || url.length() > 2048) {
-            return false;
+            return true;
         }
         try {
             URI uri = URI.create(url);
             String scheme = uri.getScheme();
-            return uri.isAbsolute()
-                    && uri.getHost() != null
-                    && uri.getUserInfo() == null
-                    && ("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme));
+            return !uri.isAbsolute()
+                    || uri.getHost() == null
+                    || uri.getUserInfo() != null
+                    || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme));
         } catch (IllegalArgumentException e) {
-            return false;
+            return true;
         }
     }
 

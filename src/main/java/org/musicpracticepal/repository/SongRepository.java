@@ -12,7 +12,5 @@ public interface SongRepository extends JpaRepository<Song, Long> {
 
     Optional<Song> findByName(String name);
 
-    boolean existsByName(String name);
-
     boolean existsByNameIgnoreCase(String name);
 }

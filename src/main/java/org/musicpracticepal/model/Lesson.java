@@ -7,7 +7,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 @Entity
 @Table(name = "lesson", uniqueConstraints = {
         @UniqueConstraint(name = "uq_lesson_name", columnNames = "name")
@@ -18,12 +21,13 @@ public class Lesson {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String name;
 
     @Column(nullable = false)
     private int position;
 
+    @Setter
     @Column(name = "link_url", length = 2048)
     private String linkUrl;
 
@@ -35,23 +39,4 @@ public class Lesson {
         this.position = position;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public int getPosition() {
-        return position;
-    }
-
-    public String getLinkUrl() {
-        return linkUrl;
-    }
-
-    public void setLinkUrl(String linkUrl) {
-        this.linkUrl = linkUrl;
-    }
 }
