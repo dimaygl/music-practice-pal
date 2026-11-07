@@ -11,9 +11,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
+@NoArgsConstructor
 @Table(name = "song_link", uniqueConstraints = {
         @UniqueConstraint(name = "uq_song_link_url", columnNames = {"song_id", "link_url"})
 })
