@@ -26,7 +26,7 @@ public class SongCatalogService {
             return false;
         }
         List<Song> songs = songRepository.findAllByOrderByPositionAsc();
-        songRepository.save(new Song(normalizedName, null,
+        songRepository.save(new Song(normalizedName,
                 songs.stream().mapToInt(Song::getPosition).max().orElse(-1) + 1));
         return true;
     }

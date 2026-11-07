@@ -2,9 +2,6 @@ package org.musicpracticepal.service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
 
@@ -14,7 +11,6 @@ import org.musicpracticepal.model.Song;
 import org.musicpracticepal.model.SongLink;
 import org.musicpracticepal.repository.SongRepository;
 import org.musicpracticepal.repository.SongLinkRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,18 +19,16 @@ import org.springframework.web.multipart.MultipartFile;
 public class SongService {
 
     private static final List<String> IMAGE_EXTENSIONS = List.of("png", "jpg", "jpeg", "gif");
+    private static final String DATABASE_IMAGE_PATH = "/songs/%d/chart-image";
 
     private final SongRepository songRepository;
     private final SongLinkRepository songLinkRepository;
-    private final Path chartDirectory;
 
     public SongService(
             SongRepository songRepository,
-            SongLinkRepository songLinkRepository,
-            @Value("${practice-pal.upload-dir:uploads/song-charts}") String chartDirectory) {
+            SongLinkRepository songLinkRepository) {
         this.songRepository = songRepository;
         this.songLinkRepository = songLinkRepository;
-        this.chartDirectory = Path.of(chartDirectory).toAbsolutePath().normalize();
     }
 
     @Transactional(readOnly = true)
@@ -55,21 +49,21 @@ public class SongService {
         return true;
     }
 
-    public Path chartDirectory() {
-        return chartDirectory;
-    }
-
+    @Transactional(readOnly = true)
     public String chartImageUrl(int songIndex) {
-        for (String extension : IMAGE_EXTENSIONS) {
-            Path image = chartImagePath(songIndex, extension);
-            if (Files.isRegularFile(image)) {
-                return "/uploaded-charts/" + image.getFileName();
-            }
+        List<Song> songs = songRepository.findAllByOrderByPositionAsc();
+        if (songIndex < 0 || songIndex >= songs.size()) {
+            return null;
+        }
+        Song song = songs.get(songIndex);
+        if (song.getChartImageData() != null) {
+            return DATABASE_IMAGE_PATH.formatted(song.getId());
         }
         return null;
     }
 
-    public void storeChart(int songIndex, MultipartFile upload) throws IOException {
+    @Transactional
+    public void storeChart(Long songId, MultipartFile upload) throws IOException {
         if (upload.isEmpty()) {
             throw new InvalidChartImageException("Choose an image to upload.");
         }
@@ -78,6 +72,7 @@ public class SongService {
         if (!IMAGE_EXTENSIONS.contains(extension)) {
             throw new InvalidChartImageException("Upload a PNG, JPG, JPEG, or GIF image.");
         }
+        byte[] imageData;
         try (InputStream input = upload.getInputStream()) {
             if (ImageIO.read(input) == null) {
                 throw new InvalidChartImageException("The selected file is not a readable image.");
@@ -87,42 +82,30 @@ public class SongService {
         } catch (IOException e) {
             throw new InvalidChartImageException("The selected file is not a readable image.");
         }
-
-        Files.createDirectories(chartDirectory);
-        Path temporaryFile = Files.createTempFile(chartDirectory, "chart-", ".upload");
-        try {
-            try (InputStream input = upload.getInputStream()) {
-                Files.copy(input, temporaryFile, StandardCopyOption.REPLACE_EXISTING);
-            }
-            Files.move(temporaryFile, chartImagePath(songIndex, extension),
-                    StandardCopyOption.REPLACE_EXISTING);
-            for (String existingExtension : IMAGE_EXTENSIONS) {
-                if (!existingExtension.equals(extension)) {
-                    Files.deleteIfExists(chartImagePath(songIndex, existingExtension));
-                }
-            }
-        } finally {
-            Files.deleteIfExists(temporaryFile);
-        }
+        imageData = upload.getBytes();
+        Song song = songRepository.findById(songId)
+                .orElseThrow(() -> new IllegalArgumentException("Song not found: " + songId));
+        song.setChartImageData(imageData, contentTypeFor(extension));
+        songRepository.save(song);
     }
 
-    public void removeChartAndShift(int songIndex, int songCount) throws IOException {
-        for (String extension : IMAGE_EXTENSIONS) {
-            Files.deleteIfExists(chartImagePath(songIndex, extension));
+    @Transactional(readOnly = true)
+    public ChartImage chartImage(Long songId) {
+        Song song = songRepository.findById(songId)
+                .orElseThrow(() -> new IllegalArgumentException("Song not found: " + songId));
+        if (song.getChartImageData() == null) {
+            return null;
         }
-        for (int currentIndex = songIndex + 1; currentIndex < songCount; currentIndex++) {
-            for (String extension : IMAGE_EXTENSIONS) {
-                Path source = chartImagePath(currentIndex, extension);
-                if (Files.isRegularFile(source)) {
-                    Files.move(source, chartImagePath(currentIndex - 1, extension),
-                            StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
-        }
+        return new ChartImage(song.getChartImageData(), song.getChartImageContentType());
     }
 
-    private Path chartImagePath(int songIndex, String extension) {
-        return chartDirectory.resolve("chart-" + songIndex + "." + extension);
+    private static String contentTypeFor(String extension) {
+        return switch (extension) {
+            case "png" -> "image/png";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "gif" -> "image/gif";
+            default -> throw new IllegalArgumentException("Unsupported image extension: " + extension);
+        };
     }
 
     private static String extensionOf(String filename) {
@@ -141,4 +124,6 @@ public class SongService {
             super(message);
         }
     }
+
+    public record ChartImage(byte[] data, String contentType) {}
 }

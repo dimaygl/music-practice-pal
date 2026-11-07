@@ -6,6 +6,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.musicpracticepal.repository.LessonRepository;
 import org.musicpracticepal.repository.SongRepository;
 import org.musicpracticepal.service.SongCatalogService;
@@ -18,14 +21,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class MainController {
 
-    record Song(Long id, String name, String chartImage) {
-        Song(String name, String chartImage) {
-            this(null, name, chartImage);
+    record Song(Long id, String name) {
+        Song(String name) {
+            this(null, name);
         }
 
         Song {
@@ -153,9 +157,8 @@ public class MainController {
         List<SongCard> songCards = IntStream.range(0, songs.size())
                 .mapToObj(index -> {
                     Song song = songs.get(index);
-                    String uploadedImage = songService.chartImageUrl(index);
-                    String chartImage = uploadedImage == null ? song.chartImage() : uploadedImage;
-                    return new SongCard(index, song.id(), song.name(), chartImage);
+                    return new SongCard(
+                            index, song.id(), song.name(), songService.chartImageUrl(index));
                 })
                 .toList();
         model.addAttribute("songs", songCards);
@@ -194,10 +197,7 @@ public class MainController {
         }
         try {
             songCatalogService.removeSong(id);
-            songService.removeChartAndShift(index, songs.size());
             redirectAttributes.addFlashAttribute("songSuccess", "Song removed.");
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to update song chart files", e);
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("songError", "That song could not be found.");
         } catch (IllegalStateException e) {
@@ -216,7 +216,7 @@ public class MainController {
             return "redirect:/song-charts";
         }
         try {
-            songService.storeChart(index, upload);
+            songService.storeChart(songs().get(index).id(), upload);
             redirectAttributes.addFlashAttribute(
                     "uploadSuccess", "Chart uploaded for " + songs().get(index).name() + ".");
         } catch (SongService.InvalidChartImageException e) {
@@ -227,12 +227,27 @@ public class MainController {
         return "redirect:/song-charts";
     }
 
+    @GetMapping("/songs/{id}/chart-image")
+    public ResponseEntity<byte[]> songChartImage(@PathVariable Long id) {
+        try {
+            SongService.ChartImage image = songService.chartImage(id);
+            if (image == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+            }
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(image.contentType()))
+                    .body(image.data());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Song not found", e);
+        }
+    }
+
     private List<Song> songs() {
         if (configuredSongs != null) {
             return configuredSongs;
         }
         List<Song> songs = songRepository.findAllByOrderByPositionAsc().stream()
-                .map(song -> new Song(song.getId(), song.getName(), song.getChartImage()))
+                .map(song -> new Song(song.getId(), song.getName()))
                 .toList();
         if (songs.isEmpty()) {
             throw new IllegalStateException("No songs are configured in the database");

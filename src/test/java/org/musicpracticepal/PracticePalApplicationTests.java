@@ -1,6 +1,7 @@
 package org.musicpracticepal;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -12,8 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.Test;
 import org.musicpracticepal.model.Song;
@@ -31,8 +37,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 @AutoConfigureMockMvc
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:practicepal-test;DB_CLOSE_DELAY=-1",
-        "music-practice-pal.upload-dir=target/test-song-charts"
+        "spring.datasource.url=jdbc:h2:mem:practicepal-test;DB_CLOSE_DELAY=-1"
 })
 class PracticePalApplicationTests {
 
@@ -54,17 +59,12 @@ class PracticePalApplicationTests {
 
     @Test
     void sampleSongsAndLessonsArePersistedInJpa() {
-        assertEquals(
-                List.of("Ain't No Sunshine", "Wind Cries Mary"),
-                songRepository.findAllByOrderByPositionAsc().stream()
-                        .map(song -> song.getName())
-                        .toList());
+        assertEquals(List.of("song-1"), songRepository.findAllByOrderByPositionAsc().stream()
+                .map(Song::getName)
+                .toList());
         assertEquals(1, lessonRepository.findAllByOrderByPositionAsc().size());
-        assertEquals(
-                List.of("https://justinjohnsonguitar.com/programs/backporch-blues-bootcamp"
-                        + "?utm_source=product&utm_medium=share&utm_campaign=content_share"
-                        + "&utm_term=3584842&utm_content=copy"),
-                lessonRepository.findAllByOrderByPositionAsc().getFirst().getLinks());
+        assertEquals("lesson-1", lessonRepository.findAllByOrderByPositionAsc().getFirst().getName());
+        assertEquals(List.of(), lessonRepository.findAllByOrderByPositionAsc().getFirst().getLinks());
     }
 
     @Test
@@ -103,6 +103,34 @@ class PracticePalApplicationTests {
     }
 
     @Test
+    void uploadedChartIsStoredInDatabaseAndServedBySongId() throws Exception {
+        Song song = songRepository.findAllByOrderByPositionAsc().getFirst();
+        byte[] imageBytes = pngImage();
+
+        MvcResult loginResult = mockMvc.perform(post("/login")
+                        .param("username", "admin")
+                        .param("password", "password")
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/"))
+                .andReturn();
+        MockHttpSession session = (MockHttpSession) loginResult.getRequest().getSession(false);
+
+        mockMvc.perform(multipart("/song-charts/0/upload")
+                        .file(new MockMultipartFile("chart", "chart.png", "image/png", imageBytes))
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(redirectedUrl("/song-charts"));
+
+        Song persistedSong = songRepository.findById(song.getId()).orElseThrow();
+        assertArrayEquals(imageBytes, persistedSong.getChartImageData());
+        assertEquals("image/png", persistedSong.getChartImageContentType());
+        mockMvc.perform(get("/songs/" + song.getId() + "/chart-image"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/png"))
+                .andExpect(content().bytes(imageBytes));
+    }
+
+    @Test
     void defaultAdminCanLogInAndAnonymousUploadIsRedirectedToLogin() throws Exception {
         mockMvc.perform(multipart("/song-charts/0/upload")
                         .file(new MockMultipartFile("chart", "chart.png", "image/png", new byte[0]))
@@ -128,8 +156,10 @@ class PracticePalApplicationTests {
 
     @Test
     void adminCanStoreSongLinkAndAnonymousCannot() throws Exception {
+        List<Song> songs = songRepository.findAllByOrderByPositionAsc();
         int songIndex = Math.floorMod(
-                LocalDate.now().toEpochDay() - LocalDate.of(1970, 1, 5).toEpochDay(), 2);
+                LocalDate.now().toEpochDay() - LocalDate.of(1970, 1, 5).toEpochDay(), songs.size());
+        String songName = songs.get(songIndex).getName();
         String linkUrl = "https://example.com/practice-link";
 
         mockMvc.perform(post("/songs/" + songIndex + "/links")
@@ -157,7 +187,6 @@ class PracticePalApplicationTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/"));
 
-        String songName = songIndex == 0 ? "Ain't No Sunshine" : "Wind Cries Mary";
         assertTrue(songLinkRepository.existsBySong_NameAndLinkUrl(songName, linkUrl));
         mockMvc.perform(get("/").session(session))
                 .andExpect(status().isOk())
@@ -207,5 +236,11 @@ class PracticePalApplicationTests {
         for (int position = 0; position < remainingSongs.size(); position++) {
             assertEquals(position, remainingSongs.get(position).getPosition());
         }
+    }
+
+    private static byte[] pngImage() throws IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "png", output);
+        return output.toByteArray();
     }
 }

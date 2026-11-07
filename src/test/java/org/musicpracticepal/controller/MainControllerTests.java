@@ -1,21 +1,19 @@
 package org.musicpracticepal.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.musicpracticepal.repository.SongRepository;
-import org.musicpracticepal.repository.SongLinkRepository;
 import org.musicpracticepal.service.SongService;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.ui.ExtendedModelMap;
@@ -25,15 +23,12 @@ import javax.imageio.ImageIO;
 
 class MainControllerTests {
 
-    @TempDir
-    Path uploadDirectory;
-
     @Test
     void songsRotateDailyInConfiguredOrder() {
         MainController controller = new MainController(
                 List.of(
-                        new MainController.Song("Song One", null),
-                        new MainController.Song("Song Two", null)),
+                        new MainController.Song("Song One"),
+                        new MainController.Song("Song Two")),
                 List.of(
                         new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")),
                         new MainController.Lesson("Lesson Two", List.of("https://example.com/lesson-two"))),
@@ -51,8 +46,8 @@ class MainControllerTests {
     @Test
     void homeModelIncludesLinksForSelectedSong() {
         List<MainController.Song> songs = List.of(
-                new MainController.Song("Song One", null),
-                new MainController.Song("Song Two", null));
+                new MainController.Song("Song One"),
+                new MainController.Song("Song Two"));
         List<MainController.Lesson> lessons = List.of(
                 new MainController.Lesson("Lesson One", List.of("https://example.com/lesson-one")));
         SongService songService = mock(SongService.class);
@@ -92,8 +87,8 @@ class MainControllerTests {
     @Test
     void songChartsModelIncludesAllSongs() {
         List<MainController.Song> songs = List.of(
-                new MainController.Song("Song One", null),
-                new MainController.Song("Song Two", "/song-charts/song-two.jpg"));
+                new MainController.Song("Song One"),
+                new MainController.Song("Song Two"));
         MainController controller = new MainController(
                 songs,
                 List.of(new MainController.Lesson("Lesson One", List.of())),
@@ -106,17 +101,15 @@ class MainControllerTests {
                 (List<MainController.SongCard>) model.get("songs");
         assertEquals(songs.size(), songCards.size());
         assertEquals("Song One", songCards.get(0).name());
-        assertEquals("/song-charts/song-two.jpg", songCards.get(1).chartImage());
+        assertNull(songCards.get(1).chartImage());
     }
 
     @Test
     void uploadingChartMakesItAvailableInTheGallery() throws IOException {
-        SongService songService = new SongService(
-                mock(SongRepository.class),
-                mock(SongLinkRepository.class),
-                uploadDirectory.toString());
+        SongService songService = mock(SongService.class);
+        when(songService.chartImageUrl(0)).thenReturn("/songs/1/chart-image");
         MainController controller = new MainController(
-                List.of(new MainController.Song("Song One", null)),
+                List.of(new MainController.Song(1L, "Song One")),
                 List.of(new MainController.Lesson("Lesson One", List.of())),
                 songService);
         ByteArrayOutputStream imageBytes = new ByteArrayOutputStream();
@@ -134,6 +127,7 @@ class MainControllerTests {
         @SuppressWarnings("unchecked")
         List<MainController.SongCard> songCards =
                 (List<MainController.SongCard>) galleryModel.get("songs");
-        assertEquals("/uploaded-charts/chart-0.png", songCards.get(0).chartImage());
+        assertEquals("/songs/1/chart-image", songCards.get(0).chartImage());
+        verify(songService).storeChart(1L, upload);
     }
 }

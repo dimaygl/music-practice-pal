@@ -7,7 +7,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+@Getter
 @Entity
 @Table(name = "practice_song", uniqueConstraints = {
         @UniqueConstraint(name = "uq_practice_song_name", columnNames = "name")
@@ -21,37 +26,27 @@ public class Song {
     @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(name = "chart_image", length = 2048)
-    private String chartImage;
+    @JdbcTypeCode(SqlTypes.VARBINARY)
+    @Column(name = "chart_image_data", length = 10 * 1024 * 1024)
+    private byte[] chartImageData;
 
+    @Column(name = "chart_image_content_type", length = 32)
+    private String chartImageContentType;
+
+    @Setter
     @Column(nullable = false)
     private int position;
 
     protected Song() {}
 
-    public Song(String name, String chartImage, int position) {
+    public Song(String name, int position) {
         this.name = name;
-        this.chartImage = chartImage;
         this.position = position;
     }
 
-    public Long getId() {
-        return id;
+    public void setChartImageData(byte[] chartImageData, String contentType) {
+        this.chartImageData = chartImageData;
+        this.chartImageContentType = contentType;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getChartImage() {
-        return chartImage;
-    }
-
-    public int getPosition() {
-        return position;
-    }
-
-    public void setPosition(int position) {
-        this.position = position;
-    }
 }
